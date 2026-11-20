@@ -30,8 +30,22 @@ jobs:
           Copy-Item dist/SR850-System-Reference.exe release/
           Copy-Item SystemAudio/README.md release/LEIA-ME.txt
           Compress-Archive -Path release/* -DestinationPath SR850-System-Reference-Windows.zip -Force
+      - name: Download official Equalizer APO 1.4.2
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path vendor | Out-Null
+          $uri = 'https://downloads.sourceforge.net/project/equalizerapo/1.4.2/EqualizerAPO-x64-1.4.2.exe'
+          Invoke-WebRequest -Uri $uri -OutFile vendor/EqualizerAPO-x64-1.4.2.exe -MaximumRedirection 10
+          if ((Get-Item vendor/EqualizerAPO-x64-1.4.2.exe).Length -lt 5000000) { throw 'Invalid Equalizer APO download' }
+          Get-FileHash vendor/EqualizerAPO-x64-1.4.2.exe -Algorithm SHA256
+      - name: Build one-click Windows installer
+        shell: pwsh
+        run: |
+          choco install nsis --no-progress -y
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' SystemAudio/installer.nsi
+          if (!(Test-Path SR850-System-Reference-Setup.exe)) { throw 'Installer not built' }
       - uses: actions/upload-artifact@v4
         with:
           name: SR850-System-Reference-Windows
-          path: SR850-System-Reference-Windows.zip
+          path: |\n            SR850-System-Reference-Windows.zip\n            SR850-System-Reference-Setup.exe
           if-no-files-found: error
