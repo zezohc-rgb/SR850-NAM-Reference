@@ -47,5 +47,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: SR850-System-Reference-Windows
-          path: |\n            SR850-System-Reference-Windows.zip\n            SR850-System-Reference-Setup.exe
+          path: |
+            SR850-System-Reference-Windows.zip
+            SR850-System-Reference-Setup.exe
           if-no-files-found: error
