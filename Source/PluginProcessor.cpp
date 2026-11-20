@@ -97,12 +97,30 @@ public:
 class ArtworkKnobs final : public juce::LookAndFeel_V4 {
 public:
  void drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,float pos,float start,float end,juce::Slider&) override {
-  const float cx=x+w*.5f,cy=y+h*.5f,r=juce::jmin(w,h)*.27f;
-  const float a=start+pos*(end-start);
-  g.setColour(juce::Colour(0xff12100e));
-  g.drawLine(cx+std::sin(a)*r*.36f,cy-std::cos(a)*r*.36f,cx+std::sin(a)*r*.90f,cy-std::cos(a)*r*.90f,4.f);
-  g.setColour(juce::Colour(0xffe3c5a0));
-  g.drawLine(cx+std::sin(a)*r*.38f,cy-std::cos(a)*r*.38f,cx+std::sin(a)*r*.85f,cy-std::cos(a)*r*.85f,1.5f);
+  const float cx=x+w*0.5f, cy=y+h*0.5f;
+  // Opaque bronze face covers the static pointer printed in the background.
+  const float radius=juce::jmin(w,h)*0.375f;
+  g.setColour(juce::Colour(0xff100c09));
+  g.fillEllipse(cx-radius-2.f,cy-radius-2.f,2.f*radius+4.f,2.f*radius+4.f);
+  juce::ColourGradient bronze(juce::Colour(0xffe5b878),cx-radius,cy-radius,
+                              juce::Colour(0xff49301d),cx+radius,cy+radius,false);
+  g.setGradientFill(bronze);
+  g.fillEllipse(cx-radius,cy-radius,2.f*radius,2.f*radius);
+  g.setColour(juce::Colour(0xffc99559));
+  g.drawEllipse(cx-radius,cy-radius,2.f*radius,2.f*radius,2.f);
+  for(int ring=1;ring<=8;++ring) {
+   const float rr=radius*(0.13f+ring*0.1f);
+   g.setColour(juce::Colour(0x30634226));
+   g.drawEllipse(cx-rr,cy-rr,2.f*rr,2.f*rr,0.7f);
+  }
+  const float angle=start+pos*(end-start);
+  const float sn=std::sin(angle),cs=std::cos(angle);
+  g.setColour(juce::Colour(0xff170f09));
+  g.drawLine(cx+sn*radius*.18f,cy-cs*radius*.18f,
+             cx+sn*radius*.86f,cy-cs*radius*.86f,5.f);
+  g.setColour(juce::Colour(0xffffe1aa));
+  g.drawLine(cx+sn*radius*.24f,cy-cs*radius*.24f,
+             cx+sn*radius*.82f,cy-cs*radius*.82f,2.f);
  }
 };
 
@@ -121,9 +139,9 @@ public:
    slider->setTextBoxStyle(juce::Slider::NoTextBox,false,0,0);
 #else
    slider->setLookAndFeel(&knobs);
+   slider->setTextBoxStyle(juce::Slider::TextBoxBelow, false, 96, 24);
 #endif
    slider->setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-   slider->setTextBoxStyle(juce::Slider::TextBoxBelow, false, 96, 24);
    slider->setColour(juce::Slider::rotarySliderFillColourId, juce::Colour(0xff78d9d1));
    slider->setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xff273e45));
    slider->setColour(juce::Slider::thumbColourId, juce::Colour(0xffc5ffed));
