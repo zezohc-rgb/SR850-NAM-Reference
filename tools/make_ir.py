@@ -29,6 +29,28 @@ bins = np.fft.rfftfreq(nfft, 1 / sr)
 target_db = np.interp(np.log10(np.maximum(bins, freq[0])), np.log10(freq), db)
 target_db[bins > freq[-1]] = db[-1]
 
+# Differential transfer measured from Morphit.wav and Nosso VST.wav
+# (same 16-second passage at 44.1 kHz, stereo). Broad anchor points
+# avoid overfitting individual narrow peaks or high-frequency noise.
+# This deliberately targets the Morphit tonal balance, not a proven flat target.
+reference_hz = np.array([
+    20, 40, 65, 80, 100, 130, 160, 200, 250, 320, 400, 500,
+    650, 800, 1000, 1250, 1600, 2000, 2500, 3000, 3500, 4000,
+    5000, 6000, 7000, 8000, 9000, 10000, 11000, 12500,
+    14500, 16500, 18000, 20000, 24000
+], dtype=np.float64)
+reference_db = np.array([
+    0, -1.5, -0.3, 0.2, 0.5, 1.35, 1.9, 2.1, 1.8, 1.5, 0.8, 0.0,
+    -0.65, -0.3, 0.45, 0.3, -0.45, -0.3, -0.45, 0.2, 0.5, 0.0,
+    0.6, 1.3, 0.8, 0.4, 1.3, 2.7, 5.0, 6.2,
+    6.3, 6.4, 6.0, 3.0, 0.0
+], dtype=np.float64)
+target_db += np.interp(
+    np.log10(np.maximum(bins, reference_hz[0])),
+    np.log10(reference_hz), reference_db
+)
+
+
 # Real cepstrum: double the positive quefrencies and discard negative ones.
 # This reconstructs a causal minimum-phase spectrum with the requested magnitude.
 log_magnitude = target_db * np.log(10.0) / 20.0
