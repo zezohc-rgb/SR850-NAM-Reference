@@ -11,7 +11,7 @@ public:
   std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Output dB",juce::NormalisableRange<float>(-18.f,12.f,0.1f),0.f),
   std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"profile",1},"Headphone",juce::StringArray{"Samson SR850","KZ AS16 Pro (provisional)"},0)
  }) {}
- const juce::String getName() const override {return "Samson SR850 Reference";}
+ const juce::String getName() const override {return "Headphone Reference by Zezo HxCx";}
  bool acceptsMidi() const override{return false;}
  bool producesMidi() const override{return false;}
  bool isMidiEffect() const override{return false;}
@@ -203,10 +203,14 @@ public:
 #if SR850_HAS_ARTWORK
   if(background.isValid()) {
    g.drawImage(background,getLocalBounds().toFloat(),juce::RectanglePlacement::stretchToFit);
+   if (isKZSelected()) drawKZTheme(g);
    drawSpectrumPanel(g);
    g.setColour(juce::Colour(0xffe5c49d));
    g.setFont(juce::Font(juce::FontOptions(13.f,juce::Font::bold)));
    g.drawText("HEADPHONE PROFILE",615,26,290,22,juce::Justification::centredLeft);
+   g.setColour(juce::Colour(0xffd6a36a));
+   g.setFont(juce::Font(juce::FontOptions(13.f)));
+   g.drawText("By Zezo HxCx",770,603,165,25,juce::Justification::centredRight);
    return;
   }
 #endif
@@ -284,6 +288,47 @@ public:
  }
 private:
 
+ bool isKZSelected() const {
+  return processor.state.getRawParameterValue("profile")->load() >= .5f;
+ }
+ void drawKZTheme(juce::Graphics& g) {
+  // Self-contained dark-mode artwork fallback until the approved KZ PNG is embedded.
+  const juce::Rectangle<float> panel(468.f,94.f,455.f,322.f);
+  g.setColour(juce::Colour(0xff090b0c));
+  g.fillRoundedRectangle(panel,18.f);
+  juce::ColourGradient halo(juce::Colour(0xff4a3524),695.f,142.f,
+                            juce::Colour(0xff0b0d0f),730.f,400.f,true);
+  g.setGradientFill(halo);
+  g.fillRoundedRectangle(panel.reduced(4.f),16.f);
+  // Stylized paired IEM shells: this is vector artwork, not a product photograph.
+  for(int side=0;side<2;++side) {
+   juce::Graphics::ScopedSaveState state(g);
+   const float x=side==0?585.f:777.f;
+   const float y=side==0?280.f:251.f;
+   g.addTransform(juce::AffineTransform::rotation(side==0?-.30f:.30f,x,y));
+   g.setColour(juce::Colour(0xff07090a));
+   g.fillRoundedRectangle(x-74.f,y-92.f,148.f,184.f,43.f);
+   g.setColour(juce::Colour(0xff9b7855));
+   g.drawRoundedRectangle(x-74.f,y-92.f,148.f,184.f,43.f,2.f);
+   g.setColour(juce::Colour(0xff23282b));
+   g.fillRoundedRectangle(x-62.f,y-79.f,124.f,156.f,37.f);
+   g.setColour(juce::Colour(0xff454d51));
+   for(int row=0;row<8;++row) for(int col=0;col<5;++col) {
+    const float xx=x-47.f+col*23.f, yy=y-60.f+row*18.f;
+    if(std::pow((xx-x)/57.f,2.f)+std::pow((yy-y)/77.f,2.f)<1.f)
+      g.drawLine(xx-6.f,yy-4.f,xx+6.f,yy+4.f,1.f);
+   }
+   g.setColour(juce::Colour(0xffd1b08c));
+   g.setFont(juce::Font(juce::FontOptions(17.f,juce::Font::bold)));
+   g.drawText(side==0?"R":"L",x-17.f,y+43.f,34.f,22.f,juce::Justification::centred);
+  }
+  g.setColour(juce::Colour(0xffe4c29a));
+  g.setFont(juce::Font(juce::FontOptions(25.f,juce::Font::bold)));
+  g.drawText("KZ AS16 PRO",495,106,385,42,juce::Justification::centred);
+  g.setColour(juce::Colour(0xffe1c49e));
+  g.setFont(juce::Font(juce::FontOptions(12.f)));
+  g.drawText("PROVISIONAL CALIBRATION",500,388,390,20,juce::Justification::centred);
+ }
  static constexpr int fftSize=2048;
  juce::dsp::FFT liveFFT{11};
  std::array<float,fftSize*2> fftData{};
