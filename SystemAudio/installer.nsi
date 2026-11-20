@@ -21,6 +21,12 @@ Section "Instalar"
   ${If} $1 != 0
    MessageBox MB_ICONEXCLAMATION "O Equalizer APO retornou codigo $1. Verifique a instalacao."
   ${EndIf}
+  ; Disable the stock demonstration EQ so closing SR850 restores flat audio.
+  IfFileExists "$PROGRAMFILES64\\EqualizerAPO\\config\\config.txt" 0 +5
+  Rename "$PROGRAMFILES64\\EqualizerAPO\\config\\config.txt" "$PROGRAMFILES64\\EqualizerAPO\\config\\config-before-sr850.txt"
+  FileOpen $2 "$PROGRAMFILES64\\EqualizerAPO\\config\\config.txt" w
+  FileWrite $2 "# SR850 System Reference: original audio when application is closed$\\r$\\n"
+  FileClose $2
  ${Else}
   DetailPrint "Equalizer APO ja instalado em $0."
  ${EndIf}
