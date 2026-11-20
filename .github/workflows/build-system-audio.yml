@@ -22,7 +22,7 @@ jobs:
       - name: Build Windows executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --name "SR850-System-Reference" --add-data "SystemAudio/SR850-Reference-48000.wav;." SystemAudio/sr850_system.py
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --uac-admin --name "SR850-System-Reference" --add-data "SystemAudio/SR850-Reference-48000.wav;." SystemAudio/sr850_system.py
       - name: Package
         shell: pwsh
         run: |
@@ -34,7 +34,7 @@ jobs:
         shell: pwsh
         run: |
           choco install nsis --no-progress -y
-          & 'C:\Program Files (x86)\NSIS\makensis.exe' SystemAudio/installer.nsi
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' /NOCD SystemAudio/installer.nsi
           if (!(Test-Path SR850-System-Reference-Setup.exe)) { throw 'Installer not built' }
       - uses: actions/upload-artifact@v4
         with:
