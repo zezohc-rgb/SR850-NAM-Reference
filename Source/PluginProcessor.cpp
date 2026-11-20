@@ -94,12 +94,34 @@ public:
  }
 };
 
+class ArtworkKnobs final : public juce::LookAndFeel_V4 {
+public:
+ void drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,float pos,float start,float end,juce::Slider&) override {
+  const float cx=x+w*.5f,cy=y+h*.5f,r=juce::jmin(w,h)*.27f;
+  const float a=start+pos*(end-start);
+  g.setColour(juce::Colour(0xff12100e));
+  g.drawLine(cx+std::sin(a)*r*.36f,cy-std::cos(a)*r*.36f,cx+std::sin(a)*r*.90f,cy-std::cos(a)*r*.90f,4.f);
+  g.setColour(juce::Colour(0xffe3c5a0));
+  g.drawLine(cx+std::sin(a)*r*.38f,cy-std::cos(a)*r*.38f,cx+std::sin(a)*r*.85f,cy-std::cos(a)*r*.85f,1.5f);
+ }
+};
+
 class SR850Editor final : public juce::AudioProcessorEditor {
 public:
  explicit SR850Editor(SR850Processor& p) : juce::AudioProcessorEditor(p), processor(p) {
+#if SR850_HAS_ARTWORK
+  background=juce::ImageFileFormat::loadFrom(BinaryData::sr850_gui_jpg,BinaryData::sr850_gui_jpgSize);
+  setSize(960, 640);
+#else
   setSize(860, 540);
+#endif
   for (auto* slider : {&strength, &output}) {
+#if SR850_HAS_ARTWORK
+   slider->setLookAndFeel(&artKnobs);
+   slider->setTextBoxStyle(juce::Slider::NoTextBox,false,0,0);
+#else
    slider->setLookAndFeel(&knobs);
+#endif
    slider->setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
    slider->setTextBoxStyle(juce::Slider::TextBoxBelow, false, 96, 24);
    slider->setColour(juce::Slider::rotarySliderFillColourId, juce::Colour(0xff78d9d1));
@@ -114,6 +136,12 @@ public:
  }
  ~SR850Editor() override { strength.setLookAndFeel(nullptr); output.setLookAndFeel(nullptr); }
  void paint(juce::Graphics& g) override {
+#if SR850_HAS_ARTWORK
+  if(background.isValid()) {
+   g.drawImage(background,getLocalBounds().toFloat(),juce::RectanglePlacement::stretchToFit);
+   return;
+  }
+#endif
   g.fillAll(juce::Colour(0xff0a0706));
   juce::ColourGradient bg(juce::Colour(0xff2d1b11),0,0,juce::Colour(0xff080909),860,540,false);
   g.setGradientFill(bg); g.fillRoundedRectangle(8.f,8.f,844.f,524.f,17.f);
@@ -173,12 +201,19 @@ public:
  }
 
  void resized() override {
+#if SR850_HAS_ARTWORK
+  strength.setBounds(71,176,153,150);
+  output.setBounds(287,176,153,150);
+#else
   strength.setBounds(57,173,170,180);
   output.setBounds(271,173,170,180);
+#endif
  }
 private:
  SR850Processor& processor;
  VintageKnobs knobs;
+ ArtworkKnobs artKnobs;
+ juce::Image background;
  juce::Slider strength, output;
  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> strengthAttachment,outputAttachment;
 };
