@@ -22,8 +22,9 @@ def bundled(name):
     return Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)) / name
 
 def find_apo():
-    for root in [os.environ.get("ProgramFiles",r"C:\Program Files"),
-                 os.environ.get("ProgramFiles(x86)",r"C:\Program Files (x86)")]:
+    for root in dict.fromkeys([os.environ.get("ProgramW6432",r"C:\Program Files"),
+                 os.environ.get("ProgramFiles",r"C:\Program Files"),
+                 os.environ.get("ProgramFiles(x86)",r"C:\Program Files (x86)")]):
         path = Path(root) / "EqualizerAPO" / "config"
         if (path / "config.txt").is_file():
             return path
