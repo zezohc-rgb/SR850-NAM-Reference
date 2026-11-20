@@ -19,9 +19,9 @@ Section "Instalar"
  IfFileExists "$PROGRAMFILES64\EqualizerAPO\Configurator.exe" apo_installed
  IfFileExists "$PROGRAMFILES\EqualizerAPO\Configurator.exe" apo_installed
  DetailPrint "Instalando Equalizer APO. Log: $TEMP\SR850-APO-install.log"
- ExecWait '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\install_apo.ps1" -LogPath "$TEMP\SR850-APO-install.log"' $1
+ ExecWait '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\install_apo.ps1" -LogPath "$TEMP\SR850-APO-install.log" -InstallerDirectory "$EXEDIR"' $1
  ${If} $1 != 0
-   MessageBox MB_ICONSTOP "Falha na instalacao do Equalizer APO. Detalhes: $TEMP\SR850-APO-install.log. O programa SR850 nao sera ativado."
+   MessageBox MB_ICONSTOP "Nao foi possivel instalar o Equalizer APO. Coloque EqualizerAPO-x64-1.4.2.exe na pasta Downloads e execute novamente. Log: $TEMP\SR850-APO-install.log. O programa SR850 nao sera ativado."
    Abort
  ${EndIf}
  apo_installed:
