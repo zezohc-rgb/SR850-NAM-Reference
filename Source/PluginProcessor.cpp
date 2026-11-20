@@ -110,7 +110,7 @@ class SR850Editor final : public juce::AudioProcessorEditor {
 public:
  explicit SR850Editor(SR850Processor& p) : juce::AudioProcessorEditor(p), processor(p) {
 #if SR850_HAS_ARTWORK
-  background=juce::ImageFileFormat::loadFrom(BinaryData::sr850_gui_jpg,BinaryData::sr850_gui_jpgSize);
+  background=juce::ImageFileFormat::loadFrom(BinaryData::sr850_gui_png,BinaryData::sr850_gui_pngSize);
   setSize(960, 640);
 #else
   setSize(860, 540);
