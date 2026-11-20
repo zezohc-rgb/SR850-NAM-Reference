@@ -8,7 +8,8 @@ public:
  SR850Processor() : juce::AudioProcessor(BusesProperties().withInput("Input",juce::AudioChannelSet::stereo(),true).withOutput("Output",juce::AudioChannelSet::stereo(),true)),
  state(*this,nullptr,"Parameters",{
   std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"strength",1},"Correction %",juce::NormalisableRange<float>(0.f,100.f,1.f),100.f),
-  std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Output dB",juce::NormalisableRange<float>(-18.f,12.f,0.1f),0.f)
+  std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Output dB",juce::NormalisableRange<float>(-18.f,12.f,0.1f),0.f),
+  std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"profile",1},"Headphone",juce::StringArray{"Samson SR850","KZ AS16 Pro (provisional)"},0)
  }) {}
  const juce::String getName() const override {return "Samson SR850 Reference";}
  bool acceptsMidi() const override{return false;}
@@ -28,9 +29,17 @@ public:
    juce::dsp::Convolution::Stereo::no,juce::dsp::Convolution::Trim::no,0,
    juce::dsp::Convolution::Normalise::no);
   convolution.prepare(spec);
+  kzConvolution.reset();
+  kzConvolution.loadImpulseResponse(BinaryData::kz_as16_pro_provisional_wav,BinaryData::kz_as16_pro_provisional_wavSize,
+   juce::dsp::Convolution::Stereo::no,juce::dsp::Convolution::Trim::no,0,
+   juce::dsp::Convolution::Normalise::no);
+  kzConvolution.prepare(spec);
   wet.setSize(2,block);
+  kzWet.setSize(2,block);
+  profileMix.reset(rate,0.08);
+  profileMix.setCurrentAndTargetValue(state.getRawParameterValue("profile")->load());
  }
- void releaseResources() override {convolution.reset();}
+ void releaseResources() override {convolution.reset(); kzConvolution.reset();}
  bool isBusesLayoutSupported(const BusesLayout& b) const override {
   return b.getMainInputChannelSet()==juce::AudioChannelSet::stereo() &&
          b.getMainOutputChannelSet()==juce::AudioChannelSet::stereo();
@@ -40,15 +49,26 @@ public:
   const int n=buffer.getNumSamples();
   wet.setSize(2,n,false,false,true);
   for(int ch=0;ch<2;++ch) wet.copyFrom(ch,0,buffer,ch,0,n);
+  kzWet.setSize(2,n,false,false,true);
+  for(int ch=0;ch<2;++ch) kzWet.copyFrom(ch,0,buffer,ch,0,n);
+  juce::dsp::AudioBlock<float> kzBlock(kzWet);
+  juce::dsp::ProcessContextReplacing<float> kzCtx(kzBlock);
+  kzConvolution.process(kzCtx);
   juce::dsp::AudioBlock<float> block(wet);
   juce::dsp::ProcessContextReplacing<float> ctx(block);
   convolution.process(ctx);
   float amount=state.getRawParameterValue("strength")->load()/100.f;
   float gain=juce::Decibels::decibelsToGain(state.getRawParameterValue("gain")->load());
-  for(int ch=0;ch<2;++ch){
-   auto* dst=buffer.getWritePointer(ch);
-   const auto* corrected=wet.getReadPointer(ch);
-   for(int i=0;i<n;++i) dst[i]=gain*(dst[i]*(1.f-amount)+corrected[i]*amount);
+  profileMix.setTargetValue(state.getRawParameterValue("profile")->load());
+  for(int i=0;i<n;++i) {
+   const float mix=profileMix.getNextValue();
+   for(int ch=0;ch<2;++ch) {
+    auto* dst=buffer.getWritePointer(ch);
+    const float sr=wet.getSample(ch,i);
+    const float kz=kzWet.getSample(ch,i);
+    const float corrected=sr*(1.f-mix)+kz*mix;
+    dst[i]=gain*(dst[i]*(1.f-amount)+corrected*amount);
+   }
   }
   const auto* left=buffer.getReadPointer(0);
   const auto* right=buffer.getReadPointer(1);
@@ -72,8 +92,9 @@ public:
  std::atomic<uint64_t> spectrumWrite{0};
  std::atomic<double> currentSampleRate{48000.0};
 private:
- juce::dsp::Convolution convolution;
- juce::AudioBuffer<float> wet;
+ juce::dsp::Convolution convolution, kzConvolution;
+ juce::SmoothedValue<float,juce::ValueSmoothingTypes::Linear> profileMix;
+ juce::AudioBuffer<float> wet,kzWet;
 };
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter(){return new SR850Processor();}
 
@@ -165,14 +186,15 @@ public:
   outputAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.state,"gain",output);
   // The KZ profile is visible but deliberately disabled until measured FIR validation.
   profileSelector.addItem("Samson SR850  -  calibrated",1);
-  profileSelector.addItem("KZ AS16 Pro  -  calibration pending",2);
-  profileSelector.setItemEnabled(2,false);
+  profileSelector.addItem("KZ AS16 Pro  -  provisional",2);
   profileSelector.setSelectedId(1,juce::dontSendNotification);
   profileSelector.setColour(juce::ComboBox::backgroundColourId,juce::Colour(0xff16110e));
   profileSelector.setColour(juce::ComboBox::textColourId,juce::Colour(0xffead2b3));
   profileSelector.setColour(juce::ComboBox::outlineColourId,juce::Colour(0xffac7b4e));
   profileSelector.setColour(juce::ComboBox::arrowColourId,juce::Colour(0xffd3a674));
   addAndMakeVisible(profileSelector);
+  profileAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(processor.state,"profile",profileSelector);
+  profileSelector.onChange=[this] { computeCorrectionCurve(); repaint(); };
   computeCorrectionCurve();
   startTimerHz(25);
  }
@@ -270,8 +292,10 @@ private:
  uint64_t lastSpectrumWrite=0;
  void computeCorrectionCurve() {
   juce::WavAudioFormat wav;
-  auto* stream=new juce::MemoryInputStream(BinaryData::sr850_minphase_wav,
-     static_cast<size_t>(BinaryData::sr850_minphase_wavSize),false);
+  const bool kz=processor.state.getRawParameterValue("profile")->load()>=0.5f;
+  const void* ir=kz?static_cast<const void*>(BinaryData::kz_as16_pro_provisional_wav):static_cast<const void*>(BinaryData::sr850_minphase_wav);
+  const size_t irSize=kz?static_cast<size_t>(BinaryData::kz_as16_pro_provisional_wavSize):static_cast<size_t>(BinaryData::sr850_minphase_wavSize);
+  auto* stream=new juce::MemoryInputStream(ir,irSize,false);
   std::unique_ptr<juce::AudioFormatReader> reader(wav.createReaderFor(stream,true));
   if(!reader) return;
   const int n=16384;
@@ -348,6 +372,7 @@ private:
  juce::Image background;
  juce::Slider strength, output;
  juce::ComboBox profileSelector;
+ std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> profileAttachment;
  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> strengthAttachment,outputAttachment;
 };
 juce::AudioProcessorEditor* SR850Processor::createEditor(){return new SR850Editor(*this);}
