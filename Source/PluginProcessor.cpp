@@ -1,6 +1,8 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <juce_dsp/juce_dsp.h>
 #include <BinaryData.h>
+#include <array>
+#include <atomic>
 class SR850Processor final : public juce::AudioProcessor {
 public:
  SR850Processor() : juce::AudioProcessor(BusesProperties().withInput("Input",juce::AudioChannelSet::stereo(),true).withOutput("Output",juce::AudioChannelSet::stereo(),true)),
@@ -19,6 +21,7 @@ public:
  const juce::String getProgramName(int) override{return {};}
  void changeProgramName(int,const juce::String&) override{}
  void prepareToPlay(double rate,int block) override {
+  currentSampleRate.store(rate,std::memory_order_relaxed);
   juce::dsp::ProcessSpec spec{rate,static_cast<juce::uint32>(block),2};
   convolution.reset();
   convolution.loadImpulseResponse(BinaryData::sr850_minphase_wav,BinaryData::sr850_minphase_wavSize,
@@ -47,6 +50,12 @@ public:
    const auto* corrected=wet.getReadPointer(ch);
    for(int i=0;i<n;++i) dst[i]=gain*(dst[i]*(1.f-amount)+corrected[i]*amount);
   }
+  const auto* left=buffer.getReadPointer(0);
+  const auto* right=buffer.getReadPointer(1);
+  for(int i=0;i<n;++i) {
+   const auto index=spectrumWrite.fetch_add(1,std::memory_order_relaxed);
+   spectrumRing[index%4096].store(0.5f*(left[i]+right[i]),std::memory_order_relaxed);
+  }
  }
  bool hasEditor() const override{return true;}
  juce::AudioProcessorEditor* createEditor() override;
@@ -59,6 +68,9 @@ public:
  }
 public:
  juce::AudioProcessorValueTreeState state;
+ std::array<std::atomic<float>,4096> spectrumRing{};
+ std::atomic<uint64_t> spectrumWrite{0};
+ std::atomic<double> currentSampleRate{48000.0};
 private:
  juce::dsp::Convolution convolution;
  juce::AudioBuffer<float> wet;
@@ -124,7 +136,7 @@ public:
  }
 };
 
-class SR850Editor final : public juce::AudioProcessorEditor {
+class SR850Editor final : public juce::AudioProcessorEditor, private juce::Timer {
 public:
  explicit SR850Editor(SR850Processor& p) : juce::AudioProcessorEditor(p), processor(p) {
 #if SR850_HAS_ARTWORK
@@ -151,12 +163,15 @@ public:
   }
   strengthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.state,"strength",strength);
   outputAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.state,"gain",output);
+  computeCorrectionCurve();
+  startTimerHz(25);
  }
- ~SR850Editor() override { strength.setLookAndFeel(nullptr); output.setLookAndFeel(nullptr); }
+ ~SR850Editor() override { stopTimer(); strength.setLookAndFeel(nullptr); output.setLookAndFeel(nullptr); }
  void paint(juce::Graphics& g) override {
 #if SR850_HAS_ARTWORK
   if(background.isValid()) {
    g.drawImage(background,getLocalBounds().toFloat(),juce::RectanglePlacement::stretchToFit);
+   drawSpectrumPanel(g);
    return;
   }
 #endif
