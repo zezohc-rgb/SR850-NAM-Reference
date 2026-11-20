@@ -41,7 +41,7 @@ public:
   juce::dsp::ProcessContextReplacing<float> ctx(block);
   convolution.process(ctx);
   float amount=state.getRawParameterValue("strength")->load()/100.f;
-  float gain=juce::Decibels::decibelsToGain(state.getRawParameterValue("gain")->load()-7.f);
+  float gain=juce::Decibels::decibelsToGain(state.getRawParameterValue("gain")->load());
   for(int ch=0;ch<2;++ch){
    auto* dst=buffer.getWritePointer(ch);
    const auto* corrected=wet.getReadPointer(ch);
@@ -49,7 +49,7 @@ public:
   }
  }
  bool hasEditor() const override{return true;}
- juce::AudioProcessorEditor* createEditor() override{return new juce::GenericAudioProcessorEditor(*this);}
+ juce::AudioProcessorEditor* createEditor() override;
  void getStateInformation(juce::MemoryBlock& out) override {
   auto xml=state.copyState().createXml();copyXmlToBinary(*xml,out);
  }
@@ -57,9 +57,81 @@ public:
   auto xml=getXmlFromBinary(data,size);
   if(xml && xml->hasTagName(state.state.getType())) state.replaceState(juce::ValueTree::fromXml(*xml));
  }
-private:
+public:
  juce::AudioProcessorValueTreeState state;
+private:
  juce::dsp::Convolution convolution;
  juce::AudioBuffer<float> wet;
 };
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter(){return new SR850Processor();}
+
+class SR850Editor final : public juce::AudioProcessorEditor {
+public:
+ explicit SR850Editor(SR850Processor& p) : juce::AudioProcessorEditor(p), processor(p) {
+  setSize(720, 420);
+  for (auto* slider : {&strength, &output}) {
+   slider->setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+   slider->setTextBoxStyle(juce::Slider::TextBoxBelow, false, 96, 24);
+   slider->setColour(juce::Slider::rotarySliderFillColourId, juce::Colour(0xff78d9d1));
+   slider->setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xff273e45));
+   slider->setColour(juce::Slider::thumbColourId, juce::Colour(0xffc5ffed));
+   slider->setColour(juce::Slider::textBoxTextColourId, juce::Colour(0xffd9e6e8));
+   slider->setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+   addAndMakeVisible(*slider);
+  }
+  strengthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.state,"strength",strength);
+  outputAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.state,"gain",output);
+ }
+ void paint(juce::Graphics& g) override {
+  auto bounds = getLocalBounds().toFloat();
+  g.fillAll(juce::Colour(0xff0b1017));
+  juce::ColourGradient bg(juce::Colour(0xff172a32),0.f,0.f,juce::Colour(0xff090d13),720.f,420.f,false);
+  g.setGradientFill(bg); g.fillRect(bounds);
+  g.setColour(juce::Colour(0x332cc6b8));
+  for(int i=0;i<10;++i) g.drawVerticalLine(40+i*72,0.f,420.f);
+  g.setColour(juce::Colour(0xff83ddd2));
+  g.setFont(juce::Font(juce::FontOptions(13.f,juce::Font::bold)));
+  g.drawText("SR850  /  NAM REFERENCE",38,26,440,22,juce::Justification::left);
+  g.setColour(juce::Colour(0xfff1f7f7));
+  g.setFont(juce::Font(juce::FontOptions(31.f,juce::Font::bold)));
+  g.drawText("REFERENCE MONITOR",36,64,520,43,juce::Justification::left);
+  g.setColour(juce::Colour(0xff91a9b0));
+  g.setFont(juce::Font(juce::FontOptions(13.f)));
+  g.drawText("Samson SR850  |  Full-resolution minimum-phase FIR",39,112,520,23,juce::Justification::left);
+
+  // Low-light vector illustration inspired by the SR850 headphone silhouette.
+  juce::Graphics::ScopedSaveState saved(g);
+  g.addTransform(juce::AffineTransform::translation(480.f,120.f));
+  juce::Path arch;
+  arch.startNewSubPath(8.f,108.f);
+  arch.cubicTo(1.f, -40.f, 202.f,-48.f, 206.f,108.f);
+  g.setColour(juce::Colour(0x5548a69e)); g.strokePath(arch,juce::PathStrokeType(23.f));
+  g.setColour(juce::Colour(0xff28343b)); g.strokePath(arch,juce::PathStrokeType(14.f));
+  g.setColour(juce::Colour(0xff53646a)); g.strokePath(arch,juce::PathStrokeType(2.f));
+  for (int side=0;side<2;++side) {
+   auto x=side==0 ? 0.f : 169.f;
+   g.setColour(juce::Colour(0xff131e24)); g.fillRoundedRectangle(x,93.f,45.f,119.f,18.f);
+   g.setColour(juce::Colour(0xff607b7d)); g.drawRoundedRectangle(x,93.f,45.f,119.f,18.f,2.f);
+   g.setColour(juce::Colour(0xff24343a)); g.fillRoundedRectangle(x+8.f,105.f,29.f,94.f,12.f);
+   g.setColour(juce::Colour(0x9985d9ce)); g.drawRoundedRectangle(x+8.f,105.f,29.f,94.f,12.f,1.f);
+  }
+  g.setColour(juce::Colour(0xff93aaa9)); g.setFont(juce::Font(juce::FontOptions(11.f,juce::Font::bold)));
+  g.drawText("SR850",73,160,70,20,juce::Justification::centred);
+
+  g.setColour(juce::Colour(0x663f7e80)); g.drawLine(38.f,280.f,676.f,280.f,1.f);
+  g.setColour(juce::Colour(0xffbed3d4)); g.setFont(juce::Font(juce::FontOptions(12.f)));
+  g.drawText("CORRECTION",43,239,145,22,juce::Justification::centred);
+  g.drawText("OUTPUT LEVEL",224,239,145,22,juce::Justification::centred);
+  g.setColour(juce::Colour(0xff6f9296)); g.drawText("AUTOEQ  /  695 MEASURED POINTS",39,378,410,20,juce::Justification::left);
+  g.drawText("VST3   •   STEREO",525,378,160,20,juce::Justification::right);
+ }
+ void resized() override {
+  strength.setBounds(47,270,136,99);
+  output.setBounds(229,270,136,99);
+ }
+private:
+ SR850Processor& processor;
+ juce::Slider strength, output;
+ std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> strengthAttachment,outputAttachment;
+};
+juce::AudioProcessorEditor* SR850Processor::createEditor(){return new SR850Editor(*this);}
