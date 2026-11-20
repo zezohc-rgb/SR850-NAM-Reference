@@ -162,6 +162,7 @@ public:
  explicit SR850Editor(SR850Processor& p) : juce::AudioProcessorEditor(p), processor(p) {
 #if SR850_HAS_ARTWORK
   background=juce::ImageFileFormat::loadFrom(BinaryData::sr850_gui_png,BinaryData::sr850_gui_pngSize);
+  kzBackground=juce::ImageFileFormat::loadFrom(BinaryData::kz_as16_pro_png,BinaryData::kz_as16_pro_pngSize);
   setSize(960, 640);
 #else
   setSize(860, 540);
@@ -202,8 +203,10 @@ public:
  void paint(juce::Graphics& g) override {
 #if SR850_HAS_ARTWORK
   if(background.isValid()) {
-   g.drawImage(background,getLocalBounds().toFloat(),juce::RectanglePlacement::stretchToFit);
-   if (isKZSelected()) drawKZTheme(g);
+   const bool kz=isKZSelected();
+   const auto& art=(kz && kzBackground.isValid())?kzBackground:background;
+   g.drawImage(art,getLocalBounds().toFloat(),juce::RectanglePlacement::stretchToFit);
+   if (kz && !kzBackground.isValid()) drawKZTheme(g);
    drawSpectrumPanel(g);
    g.setColour(juce::Colour(0xffe5c49d));
    g.setFont(juce::Font(juce::FontOptions(13.f,juce::Font::bold)));
@@ -414,7 +417,7 @@ private:
  SR850Processor& processor;
  VintageKnobs knobs;
  ArtworkKnobs artKnobs;
- juce::Image background;
+ juce::Image background,kzBackground;
  juce::Slider strength, output;
  juce::ComboBox profileSelector;
  std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> profileAttachment;
