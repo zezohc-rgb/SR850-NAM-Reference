@@ -243,6 +243,87 @@ public:
 #endif
  }
 private:
+
+ static constexpr int fftSize=2048;
+ juce::dsp::FFT liveFFT{11};
+ std::array<float,fftSize*2> fftData{};
+ std::array<float,128> spectrumDb{};
+ std::array<float,128> correctionDb{};
+ uint64_t lastSpectrumWrite=0;
+ void computeCorrectionCurve() {
+  juce::WavAudioFormat wav;
+  auto* stream=new juce::MemoryInputStream(BinaryData::sr850_minphase_wav,
+     static_cast<size_t>(BinaryData::sr850_minphase_wavSize),false);
+  std::unique_ptr<juce::AudioFormatReader> reader(wav.createReaderFor(stream,true));
+  if(!reader) return;
+  const int n=16384;
+  juce::AudioBuffer<float> impulse(1,n);
+  impulse.clear();
+  reader->read(&impulse,0,juce::jmin(n,static_cast<int>(reader->lengthInSamples)),0,true,false);
+  juce::dsp::FFT fft(14);
+  std::vector<float> data(n*2,0.f);
+  for(int i=0;i<n;++i) data[i]=impulse.getSample(0,i);
+  fft.performRealOnlyForwardTransform(data.data(),true);
+  for(int k=0;k<128;++k) {
+   const double hz=20.0*std::pow(1000.0,k/127.0);
+   const int bin=juce::jlimit(0,n/2,static_cast<int>(std::round(hz*n/48000.0)));
+   const float magnitude=std::hypot(data[2*bin],data[2*bin+1]);
+   correctionDb[k]=juce::Decibels::gainToDecibels(juce::jmax(magnitude,1.e-8f),-100.f);
+  }
+  spectrumDb.fill(-90.f);
+ }
+ void timerCallback() override {
+  const auto write=processor.spectrumWrite.load(std::memory_order_relaxed);
+  if(write==lastSpectrumWrite) {
+   for(auto& db:spectrumDb) db=juce::jmax(-90.f,db-2.f);
+   repaint(48,433,854,113);
+   return;
+  }
+  lastSpectrumWrite=write;
+  fftData.fill(0.f);
+  for(int i=0;i<fftSize;++i) {
+   const auto index=(write-fftSize+static_cast<uint64_t>(i))%4096;
+   const float hann=.5f-.5f*std::cos(juce::MathConstants<float>::twoPi*i/(fftSize-1));
+   fftData[i]=processor.spectrumRing[index].load(std::memory_order_relaxed)*hann;
+  }
+  liveFFT.performRealOnlyForwardTransform(fftData.data(),true);
+  const double rate=processor.currentSampleRate.load(std::memory_order_relaxed);
+  for(int k=0;k<128;++k) {
+   const double hz=20.0*std::pow(1000.0,k/127.0);
+   const int bin=juce::jlimit(1,fftSize/2,static_cast<int>(std::round(hz*fftSize/rate)));
+   const float mag=std::hypot(fftData[2*bin],fftData[2*bin+1])/fftSize*4.f;
+   const float db=juce::Decibels::gainToDecibels(juce::jmax(mag,1.e-8f),-100.f);
+   spectrumDb[k]=db>spectrumDb[k]?spectrumDb[k]*.35f+db*.65f:spectrumDb[k]*.82f+db*.18f;
+  }
+  repaint(48,433,854,113);
+ }
+ void drawSpectrumPanel(juce::Graphics& g) {
+  const juce::Rectangle<float> plot(79.f,435.f,815.f,109.f);
+  g.setColour(juce::Colour(0xff071313));
+  g.fillRect(plot);
+  g.setColour(juce::Colour(0x60428a82));
+  for(int i=0;i<=10;++i) {
+   const float x=plot.getX()+plot.getWidth()*i/10.f;
+   g.drawVerticalLine(static_cast<int>(x),plot.getY(),plot.getBottom());
+  }
+  for(int i=0;i<=4;++i) {
+   const float y=plot.getY()+plot.getHeight()*i/4.f;
+   g.drawHorizontalLine(static_cast<int>(y),plot.getX(),plot.getRight());
+  }
+  auto pathFor=[&](const std::array<float,128>& data,float lo,float hi) {
+   juce::Path path;
+   for(int i=0;i<128;++i) {
+    const float x=plot.getX()+plot.getWidth()*i/127.f;
+    const float y=juce::jmap(juce::jlimit(lo,hi,data[i]),hi,lo,plot.getY(),plot.getBottom());
+    if(i==0) path.startNewSubPath(x,y); else path.lineTo(x,y);
+   }
+   return path;
+  };
+  g.setColour(juce::Colour(0xffd6a36a));
+  g.strokePath(pathFor(correctionDb,-12.f,12.f),juce::PathStrokeType(1.6f));
+  g.setColour(juce::Colour(0xff30e8e2));
+  g.strokePath(pathFor(spectrumDb,-75.f,-8.f),juce::PathStrokeType(2.2f));
+ }
  SR850Processor& processor;
  VintageKnobs knobs;
  ArtworkKnobs artKnobs;
