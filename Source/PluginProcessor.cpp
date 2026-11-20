@@ -204,16 +204,36 @@ public:
 #if SR850_HAS_ARTWORK
   if(background.isValid()) {
    const bool kz=isKZSelected();
-   const auto& art=(kz && kzBackground.isValid())?kzBackground:background;
-   g.drawImage(art,getLocalBounds().toFloat(),juce::RectanglePlacement::stretchToFit);
-   if (kz && !kzBackground.isValid()) drawKZTheme(g);
+   // One immutable interface for both profiles: only the headphone photograph
+   // and the two model labels change. Knobs, analyzer and footer never move.
+   g.drawImage(background,getLocalBounds().toFloat(),juce::RectanglePlacement::stretchToFit);
+   if (kz && kzBackground.isValid()) {
+    const juce::Rectangle<int> photoRegion(480,119,446,258);
+    juce::Graphics::ScopedSaveState clip(g);
+    g.reduceClipRegion(photoRegion);
+    g.drawImage(kzBackground,photoRegion.toFloat(),juce::RectanglePlacement::centred | juce::RectanglePlacement::fillDestination);
+   }
    drawSpectrumPanel(g);
-   g.setColour(juce::Colour(0xffe5c49d));
-   g.setFont(juce::Font(juce::FontOptions(13.f,juce::Font::bold)));
-   g.drawText("HEADPHONE PROFILE",615,26,290,22,juce::Justification::centredLeft);
-   g.setColour(juce::Colour(0xffd6a36a));
-   g.setFont(juce::Font(juce::FontOptions(13.f)));
-   g.drawText("By Zezo HxCx",770,603,165,25,juce::Justification::centredRight);
+   // Cover the printed heading underneath the selector, without shifting it.
+   g.setColour(juce::Colour(0xff120e0c));
+   g.fillRoundedRectangle(602.f,12.f,325.f,82.f,10.f);
+   g.setColour(juce::Colour(0xffd9ad7a));
+   g.setFont(juce::Font(juce::FontOptions(12.f,juce::Font::bold)));
+   g.drawText("HEADPHONE",616,17,291,18,juce::Justification::centredLeft);
+   // Dynamic top model title: same coordinates and typography for both phones.
+   g.setColour(juce::Colour(0xff130f0d));
+   g.fillRoundedRectangle(495.f,103.f,415.f,39.f,7.f);
+   g.setColour(juce::Colour(0xffe7c49c));
+   g.setFont(juce::Font(juce::FontOptions(23.f,juce::Font::bold)));
+   g.drawText(kz?"KZ AS16 PRO":"SAMSON SR850",506,106,394,32,juce::Justification::centred);
+   // Model below the two knobs; keep the same background/position.
+   g.setColour(juce::Colour(0xff130f0d));
+   g.fillRoundedRectangle(78.f,346.f,370.f,35.f,7.f);
+   g.setColour(juce::Colour(0xffdcb48a));
+   g.setFont(juce::Font(juce::FontOptions(19.f,juce::Font::bold)));
+   g.drawText(kz?"KZ AS16 PRO":"SAMSON SR850",82,348,362,30,juce::Justification::centred);
+   // The approved background already contains "By Zezo HxCx" once.
+   // Never draw a second footer on top of the artwork.
    return;
   }
 #endif
@@ -277,7 +297,7 @@ public:
 
  void resized() override {
 #if SR850_HAS_ARTWORK
-  profileSelector.setBounds(615,51,290,31);
+  profileSelector.setBounds(615,42,290,38);
 #else
   profileSelector.setBounds(520,52,290,31);
 #endif
