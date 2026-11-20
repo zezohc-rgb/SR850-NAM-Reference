@@ -13,24 +13,19 @@ ShowInstDetails show
 Section "Instalar"
  SetOutPath "$INSTDIR"
  File "dist\SR850-System-Reference.exe"
- File "vendor\EqualizerAPO-x64-1.4.2.exe"
- ReadRegStr $0 HKLM "SOFTWARE\EqualizerAPO" "InstallPath"
- ${If} $0 == ""
-  DetailPrint "Instalando Equalizer APO oficial. O seletor de dispositivo pode ser exibido."
-  ExecWait '"$INSTDIR\EqualizerAPO-x64-1.4.2.exe" /S' $1
-  ${If} $1 != 0
-   MessageBox MB_ICONEXCLAMATION "O Equalizer APO retornou codigo $1. Verifique a instalacao."
-  ${EndIf}
-  ; Disable the stock demonstration EQ so closing SR850 restores flat audio.
-  IfFileExists "$PROGRAMFILES64\EqualizerAPO\config\config.txt" 0 +5
-  Rename "$PROGRAMFILES64\EqualizerAPO\config\config.txt" "$PROGRAMFILES64\EqualizerAPO\config\config-before-sr850.txt"
-  FileOpen $2 "$PROGRAMFILES64\EqualizerAPO\config\config.txt" w
-  FileWrite $2 "# SR850 System Reference: original audio when application is closed$\r$\n"
-  FileClose $2
- ${Else}
-  DetailPrint "Equalizer APO ja instalado em $0."
+
+ ; Install dependency on the user's machine instead of downloading from SourceForge on CI.
+ ; Winget handles source selection and installer verification.
+ IfFileExists "$PROGRAMFILES64\EqualizerAPO\config\config.txt" apo_installed
+ IfFileExists "$PROGRAMFILES\EqualizerAPO\config\config.txt" apo_installed
+ DetailPrint "Instalando Equalizer APO via Windows Package Manager..."
+ nsExec::ExecToLog 'winget install --id EqualizerAPO.EqualizerAPO --exact --source winget --accept-package-agreements --accept-source-agreements --silent --disable-interactivity'
+ Pop $1
+ ${If} $1 != 0
+   MessageBox MB_ICONSTOP "Nao foi possivel instalar o Equalizer APO automaticamente (codigo $1). Verifique a conexao e o Windows Package Manager. O SR850 nao sera ativado."
+   Abort
  ${EndIf}
- Delete "$INSTDIR\EqualizerAPO-x64-1.4.2.exe"
+ apo_installed:
  CreateDirectory "$SMPROGRAMS\SR850 System Reference"
  CreateShortcut "$SMPROGRAMS\SR850 System Reference\SR850 System Reference.lnk" "$INSTDIR\SR850-System-Reference.exe"
  CreateShortcut "$DESKTOP\SR850 System Reference.lnk" "$INSTDIR\SR850-System-Reference.exe"
