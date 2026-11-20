@@ -24,7 +24,10 @@ db = np.asarray([float(r["equalization"]) for r in rows], dtype=np.float64)
 if not (np.all(np.isfinite(freq)) and np.all(np.isfinite(db)) and np.all(np.diff(freq) > 0)):
     raise RuntimeError("Invalid AutoEq frequency data")
 
-sr, nfft = 48000, 16384
+sr = int(sys.argv[2]) if len(sys.argv) > 2 else 48000
+if sr not in (44100, 48000):
+    raise ValueError("Supported sample rates: 44100, 48000")
+nfft = 16384
 bins = np.fft.rfftfreq(nfft, 1 / sr)
 target_db = np.interp(np.log10(np.maximum(bins, freq[0])), np.log10(freq), db)
 target_db[bins > freq[-1]] = db[-1]
