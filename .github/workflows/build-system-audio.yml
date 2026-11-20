@@ -23,13 +23,6 @@ jobs:
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean --onefile --windowed --uac-admin --name "SR850-System-Reference" --add-data "SystemAudio/SR850-Reference-48000.wav;." SystemAudio/sr850_system.py
-      - name: Package
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path release | Out-Null
-          Copy-Item dist/SR850-System-Reference.exe release/
-          Copy-Item SystemAudio/README.md release/LEIA-ME.txt
-          Compress-Archive -Path release/* -DestinationPath SR850-System-Reference-Windows.zip -Force
       - name: Build one-click Windows installer
         shell: pwsh
         run: |
@@ -38,8 +31,6 @@ jobs:
           if (!(Test-Path SR850-System-Reference-Setup.exe)) { throw 'Installer not built' }
       - uses: actions/upload-artifact@v4
         with:
-          name: SR850-System-Reference-Windows
-          path: |
-            SR850-System-Reference-Windows.zip
-            SR850-System-Reference-Setup.exe
+          name: SR850-System-Reference-Setup
+          path: SR850-System-Reference-Setup.exe
           if-no-files-found: error
