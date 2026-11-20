@@ -11,7 +11,7 @@ execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/too
 if(NOT IR_RESULT EQUAL 0)
  message(FATAL_ERROR "IR generation failed")
 endif()
-set(ART_FILE "${CMAKE_CURRENT_SOURCE_DIR}/Assets/sr850_gui.jpg")
+set(ART_FILE "${CMAKE_CURRENT_SOURCE_DIR}/sr850_gui.png")
 if(EXISTS "${ART_FILE}")
  juce_add_binary_data(SR850IR SOURCES "${IR_FILE}" "${ART_FILE}")
  set(SR850_HAS_ARTWORK 1)
