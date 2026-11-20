@@ -163,6 +163,16 @@ public:
   }
   strengthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.state,"strength",strength);
   outputAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.state,"gain",output);
+  // The KZ profile is visible but deliberately disabled until measured FIR validation.
+  profileSelector.addItem("Samson SR850  -  calibrated",1);
+  profileSelector.addItem("KZ AS16 Pro  -  calibration pending",2);
+  profileSelector.setItemEnabled(2,false);
+  profileSelector.setSelectedId(1,juce::dontSendNotification);
+  profileSelector.setColour(juce::ComboBox::backgroundColourId,juce::Colour(0xff16110e));
+  profileSelector.setColour(juce::ComboBox::textColourId,juce::Colour(0xffead2b3));
+  profileSelector.setColour(juce::ComboBox::outlineColourId,juce::Colour(0xffac7b4e));
+  profileSelector.setColour(juce::ComboBox::arrowColourId,juce::Colour(0xffd3a674));
+  addAndMakeVisible(profileSelector);
   computeCorrectionCurve();
   startTimerHz(25);
  }
@@ -172,6 +182,9 @@ public:
   if(background.isValid()) {
    g.drawImage(background,getLocalBounds().toFloat(),juce::RectanglePlacement::stretchToFit);
    drawSpectrumPanel(g);
+   g.setColour(juce::Colour(0xffe5c49d));
+   g.setFont(juce::Font(juce::FontOptions(13.f,juce::Font::bold)));
+   g.drawText("HEADPHONE PROFILE",615,26,290,22,juce::Justification::centredLeft);
    return;
   }
 #endif
@@ -234,6 +247,11 @@ public:
  }
 
  void resized() override {
+#if SR850_HAS_ARTWORK
+  profileSelector.setBounds(615,51,290,31);
+#else
+  profileSelector.setBounds(520,52,290,31);
+#endif
 #if SR850_HAS_ARTWORK
   strength.setBounds(71,176,153,150);
   output.setBounds(287,176,153,150);
@@ -329,6 +347,7 @@ private:
  ArtworkKnobs artKnobs;
  juce::Image background;
  juce::Slider strength, output;
+ juce::ComboBox profileSelector;
  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> strengthAttachment,outputAttachment;
 };
 juce::AudioProcessorEditor* SR850Processor::createEditor(){return new SR850Editor(*this);}
