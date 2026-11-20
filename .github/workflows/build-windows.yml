@@ -1,0 +1,32 @@
+name: Build Windows VST3
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install numpy scipy
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+      - name: Compile VST3
+        run: cmake --build build --config Release --target SR850NAMReference_VST3 --parallel 4
+      - name: Package
+        shell: pwsh
+        run: |
+          $plugin = Get-ChildItem -Path build -Recurse -Directory -Filter '*.vst3' | Select-Object -First 1
+          if (-not $plugin) { throw 'VST3 not found' }
+          New-Item -ItemType Directory -Force -Path package | Out-Null
+          Copy-Item $plugin.FullName -Destination package -Recurse
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SR850-NAM-Reference-Windows-VST3
+          path: package/
