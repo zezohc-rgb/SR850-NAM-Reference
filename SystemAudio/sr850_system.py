@@ -16,7 +16,7 @@ START = "# >>> SR850 SYSTEM REFERENCE MANAGED BEGIN >>>"
 END = "# <<< SR850 SYSTEM REFERENCE MANAGED END <<<"
 LINE = "Include: SR850-System-Reference.txt"
 CONFIG_NAME = "SR850-System-Reference.txt"
-FIR_NAME = "SR850-Reference-48000.wav"
+FIR_NAMES = {44100: "SR850-Reference-44100.wav", 48000: "SR850-Reference-48000.wav"}
 
 def bundled(name):
     return Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)) / name
@@ -59,21 +59,22 @@ def cleanup(config):
     if new != text:
         write_config(config,new,bom)
 
-def install(config_dir):
+def install(config_dir, sample_rate=44100, preamp_db=-6.0):
     config=config_dir/"config.txt"
     text,bom=read_config(config)
     text=remove_block(text)
-    fir=bundled(FIR_NAME)
+    fir_name=FIR_NAMES[sample_rate]
+    fir=bundled(fir_name)
     if not fir.exists():
         raise RuntimeError("Filtro FIR não encontrado no pacote.")
     # Convolution takes a WAV impulse; same SR850 correction as the VST3.
     # Use relative paths inside Equalizer APO config directory.
     import shutil
-    shutil.copyfile(fir,config_dir/FIR_NAME)
+    shutil.copyfile(fir,config_dir/fir_name)
     (config_dir/CONFIG_NAME).write_text(
         "# SR850 Reference - FIR; correction only while app is running\n"
-        "Preamp: -7 dB\n"
-        f"Convolution: {FIR_NAME}\n",encoding="utf-8")
+        f"Preamp: {preamp_db:+.1f} dB\n"
+        f"Convolution: {fir_name}\n",encoding="utf-8")
     newline="\r\n" if "\r\n" in text else "\n"
     block=START+newline+LINE+newline+END+newline
     write_config(config,text.rstrip("\r\n")+newline+block,bom)
@@ -108,7 +109,7 @@ class UI:
         self.active=False
         self.config_dir=find_apo()
         root.title("SR850 System Reference  |  By Zezo HxCx")
-        root.geometry("540x380")
+        root.geometry("540x475")
         root.resizable(False,False)
         root.configure(bg="#111317")
         self.label=tk.Label(root,text="SAMSON  SR850",bg="#111317",fg="#ead1b1",
@@ -123,6 +124,22 @@ class UI:
                               bg="#aa7849",fg="white",activebackground="#c18e5c",
                               relief="flat",font=("Segoe UI",12,"bold"),height=2,width=29)
         self.button.pack()
+        tk.Label(root,text="Frequência de saída da M-Audio",bg="#111317",fg="#ead1b1",
+                 font=("Segoe UI",10)).pack(pady=(13,2))
+        self.rate=tk.StringVar(value="44.1 kHz")
+        self.rate_menu=tk.OptionMenu(root,self.rate,"44.1 kHz","48 kHz")
+        self.rate_menu.pack()
+        tk.Label(root,text="Ganho / headroom (dB)",bg="#111317",fg="#ead1b1",
+                 font=("Segoe UI",10)).pack(pady=(8,0))
+        self.gain=tk.DoubleVar(value=-6.0)
+        self.gain_slider=tk.Scale(root,from_=-12,to=0,resolution=0.5,
+                                 orient="horizontal",variable=self.gain,
+                                 bg="#111317",fg="#ead1b1",highlightthickness=0,
+                                 length=290)
+        self.gain_slider.pack()
+        tk.Label(root,text="Ganhos próximos de 0 dB podem causar clipping. Compare volumes iguais.",
+                 bg="#111317",fg="#a4a9af",font=("Segoe UI",9)).pack()
+
         self.device=tk.StringVar()
         tk.Label(root,textvariable=self.device,bg="#111317",fg="#a4a9af",
                  wraplength=480,font=("Segoe UI",10)).pack(pady=13)
@@ -144,10 +161,11 @@ class UI:
             messagebox.showerror(APP,"Instale Equalizer APO e selecione a saída de reprodução M-Audio no Configurator.\nDepois reabra o aplicativo.")
             return
         try:
-            install(self.config_dir)
+            rate=44100 if self.rate.get()=="44.1 kHz" else 48000
+            install(self.config_dir,rate,float(self.gain.get()))
             launch_watchdog(self.config_dir/"config.txt")
             self.active=True
-            self.status.set("Correção FIR ativa — saída configurada no Equalizer APO")
+            self.status.set(f"FIR {rate} Hz configurado no APO; processamento da saída ainda não verificado")
             self.button.configure(text="DESATIVAR / ÁUDIO ORIGINAL",bg="#416d5d")
         except Exception as exc:
             try: cleanup(self.config_dir/"config.txt")
