@@ -1,7 +1,13 @@
 param([string]$LogPath = "$env:TEMP\SR850-APO-install.log", [string]$InstallerDirectory = "")
 $ErrorActionPreference = 'Stop'
 function Find-EqualizerAPO {
-  $locations = @("$env:ProgramFiles\EqualizerAPO", "${env:ProgramFiles(x86)}\EqualizerAPO")
+  $locations = @(
+    "$env:ProgramW6432\EqualizerAPO",
+    "$env:ProgramFiles\EqualizerAPO",
+    "${env:ProgramFiles(x86)}\EqualizerAPO",
+    "C:\Program Files\EqualizerAPO",
+    "C:\Program Files (x86)\EqualizerAPO"
+  )
   foreach ($key in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')) {
     foreach ($app in @(Get-ItemProperty $key -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match '^Equalizer APO' })) {
       if ($app.InstallLocation) { $locations += $app.InstallLocation }
@@ -11,8 +17,10 @@ function Find-EqualizerAPO {
   foreach ($location in ($locations | Select-Object -Unique)) {
     if (-not $location) { continue }
     Write-Host "Verificando instalacao em: $location"
-    if ((Test-Path (Join-Path $location 'Editor.exe')) -and (Test-Path (Join-Path $location 'config'))) { return $location }
-    if ((Test-Path (Join-Path $location 'Configurator.exe')) -and (Test-Path (Join-Path $location 'config'))) { return $location }
+    if (Test-Path (Join-Path $location 'config\config.txt')) {
+      Write-Host "Configuracao do APO encontrada: $location"
+      return $location
+    }
   }
   return $null
 }
