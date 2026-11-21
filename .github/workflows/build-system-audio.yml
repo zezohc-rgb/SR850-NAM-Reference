@@ -25,10 +25,16 @@ jobs:
           }
       - name: Smoke test Qt interface and actual FIR data
         run: python SystemAudio/test_qt_smoke.py
+      - name: Check approved photographic artwork
+        shell: pwsh
+        run: |
+          if (!(Test-Path "SystemAudio/SR850-visual-reference.png")) {
+            throw "Approved SR850 visual artwork is missing. Add SystemAudio/SR850-visual-reference.png before building."
+          }
       - name: Build Windows executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --uac-admin --name "SR850-System-Reference" --add-data "SystemAudio/SR850-Reference-48000.wav;." --add-data "SystemAudio/SR850-Reference-44100.wav;." --hidden-import sr850_system --hidden-import spectrum_monitor --collect-all soundcard --collect-all cffi SystemAudio/sr850_qt.py
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --uac-admin --name "SR850-System-Reference" --add-data "SystemAudio/SR850-Reference-48000.wav;." --add-data "SystemAudio/SR850-Reference-44100.wav;." --add-data "SystemAudio/SR850-visual-reference.png;." --hidden-import sr850_system --hidden-import spectrum_monitor --collect-all soundcard --collect-all cffi SystemAudio/sr850_qt.py
       - name: Build one-click Windows installer
         shell: pwsh
         run: |
