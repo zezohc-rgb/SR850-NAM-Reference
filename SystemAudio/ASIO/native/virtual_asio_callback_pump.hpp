@@ -17,7 +17,13 @@ class VirtualAsioCallbackPump {
     return true;
   }
   bool start() noexcept {
-    return callback_ && clock_.frames()==stream_.frames() && stream_.start();
+    if (!callback_ || clock_.frames()!=stream_.frames() ||
+        !stream_.start()) return false;
+    // Every new physical ASIO start begins at buffer bank zero.
+    // A prior stop may have happened after an odd number of blocks.
+    next_bank_=0;
+    clock_.reset();
+    return true;
   }
   bool configure_clock(std::uint32_t sample_rate) noexcept {
     if (stream_.state()!=VirtualAsioStreamCore::State::prepared) return false;
