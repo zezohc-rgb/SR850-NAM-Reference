@@ -54,6 +54,8 @@ jobs:
           asio_output_adapter_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_asio_duplex_callback_router.cpp /Fe:asio_duplex_router_test.exe
           asio_duplex_router_test.exe
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_asio_double_buffer_bridge.cpp /Fe:asio_double_buffer_test.exe
+          asio_double_buffer_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\asio_registry_windows.cpp /Fe:asio_registry.exe advapi32.lib ole32.lib
           asio_registry.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_com_driver_handle_windows.cpp /Fe:com_driver_test.exe ole32.lib
@@ -112,3 +114,5 @@ jobs:
           ./asio_output_adapter_test
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_asio_duplex_callback_router.cpp -o asio_duplex_router_test
           ./asio_duplex_router_test
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_asio_double_buffer_bridge.cpp -o asio_double_buffer_test
+          ./asio_double_buffer_test
