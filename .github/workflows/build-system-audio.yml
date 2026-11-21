@@ -23,6 +23,8 @@ jobs:
           foreach ($sr in @("44100","48000")) {
             if (!(Test-Path "SystemAudio/SR850-Reference-$sr.wav")) { throw "Missing $sr FIR" }
           }
+      - name: Smoke test Qt interface and actual FIR data
+        run: python SystemAudio/test_qt_smoke.py
       - name: Build Windows executable
         shell: pwsh
         run: |
