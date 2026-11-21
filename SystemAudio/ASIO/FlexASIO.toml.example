@@ -1,0 +1,15 @@
+# Copy to %USERPROFILE%\FlexASIO.toml and replace device names with exact
+# PortAudioDevices output for your M-Audio Fast Track MKII.
+backend = "Windows WASAPI"
+bufferSizeSamples = 256
+
+[input]
+device = "REPLACE_WITH_FAST_TRACK_INPUT_DEVICE"
+wasapiExclusiveMode = false
+suggestedLatencySeconds = 0.0
+
+[output]
+device = "REPLACE_WITH_FAST_TRACK_OUTPUT_DEVICE"
+wasapiExclusiveMode = false
+suggestedLatencySeconds = 0.0
+wasapiAutoConvert = true
