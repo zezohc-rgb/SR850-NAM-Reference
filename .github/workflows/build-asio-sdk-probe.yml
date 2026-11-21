@@ -17,8 +17,8 @@ jobs:
         env:
           SDK_DIR: ${{ inputs.sdk_include_dir }}
         run: |
-          if (-not (Test-Path (Join-Path $env:SDK_DIR 'asio.h'))) {
-            Write-Error 'Missing asio.h. Supply a licensed ASIO SDK separately; this repository does not redistribute it.'
+          if (-not (Test-Path (Join-Path $env:SDK_DIR 'iasiodrv.h'))) {
+            Write-Error 'Missing iasiodrv.h. Supply a licensed ASIO SDK separately; this repository does not redistribute it.'
             exit 1
           }
       - name: Compile only (never initialize driver on runner)
