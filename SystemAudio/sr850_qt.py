@@ -23,7 +23,7 @@ class Controller(QWidget):
         self.resize(1100, 680)
         self.active=False
         self.rate=44100
-        self.gain=-6.0
+        self.gain=0.0
         self.config_dir=engine.find_apo()
         self.message="AUDIO ORIGINAL  |  CORRECAO DESLIGADA"
         self.dragging=False
@@ -105,7 +105,7 @@ class Controller(QWidget):
         self.text(p,870,152,"20 Hz — 20 kHz",11,"#d5a06a")
         self.text(p,441,175,"MEASURED FIR TRANSFER  /  LOG FREQUENCY",9,"#8b9aa5")
         self.graph(p,QRectF(473,206,554,163))
-        self.text(p,473,405,"—  CORRECTION",10,"#e8a366")
+        self.text(p,473,405,"—  CORRECTION FIR",10,"#e8a366")
         self.text(p,666,405,"—  LIVE SPECTRUM (WASAPI)",10,"#5acde0")
         # Controls use a real rack-style layout with separate insets.
         self.panel(p,412,434,651,134)
@@ -116,7 +116,11 @@ class Controller(QWidget):
         glow.setColorAt(1,QColor("#0b1015"))
         p.setPen(QPen(QColor("#64dba3" if self.active else "#df9a54"),3))
         p.setBrush(glow);p.drawEllipse(QPointF(cx,cy),30,30)
-        self.text(p,459,521,"⏻",28,"#b6ffd9" if self.active else "#ffe1b8",True)
+        # Native power glyph: independent of installed font symbols.
+        p.setPen(QPen(QColor("#d6ffea" if self.active else "#ffe2ba"),4,Qt.SolidLine,Qt.RoundCap))
+        p.setBrush(Qt.NoBrush)
+        p.drawArc(QRectF(cx-12,cy-10,24,25),135*16,270*16)
+        p.drawLine(QPointF(cx,cy-16),QPointF(cx,cy+1))
         self.text(p,520,508,"ACTIVE" if self.active else "BYPASS",15,"#65e6a5" if self.active else "#e4a76e",True)
         self.text(p,520,528,"FIR ENGAGED" if self.active else "ORIGINAL AUDIO",9,"#8d9ca7")
         p.setPen(QPen(QColor("#46525c"),1));p.drawLine(653,454,653,551)
@@ -220,8 +224,17 @@ class Controller(QWidget):
                 yy=r.bottom()-max(0,min(1,(float(db)+90)/90))*r.height()
                 if i==0:path.moveTo(xx,yy)
                 else:path.lineTo(xx,yy)
-            p.setPen(QPen(QColor("#50c8e4"),1.5))
-            p.drawPath(path)
+            fill=QPainterPath(path)
+            fill.lineTo(r.right(),r.bottom())
+            fill.lineTo(r.left(),r.bottom())
+            fill.closeSubpath()
+            glow=QLinearGradient(0,r.top(),0,r.bottom())
+            glow.setColorAt(0,QColor(44,215,250,92))
+            glow.setColorAt(1,QColor(18,128,180,3))
+            p.setPen(Qt.NoPen);p.setBrush(glow);p.drawPath(fill)
+            p.setBrush(Qt.NoBrush)
+            p.setPen(QPen(QColor("#164f68"),4));p.drawPath(path)
+            p.setPen(QPen(QColor("#58dafa"),1.6));p.drawPath(path)
         curve=self.curves[self.rate]
         if self.active and curve is not None:
             path=QPainterPath()
