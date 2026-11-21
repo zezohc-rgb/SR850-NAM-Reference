@@ -36,6 +36,8 @@ jobs:
           negotiation_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_device_session.cpp /Fe:session_test.exe
           session_test.exe
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\asio_registry_windows.cpp /Fe:asio_registry.exe advapi32.lib ole32.lib
+          asio_registry.exe
       - name: Build and test (Linux GCC)
         if: runner.os == 'Linux'
         shell: bash
