@@ -3,8 +3,8 @@ param(
   [string]$OutputDir = "."
 )
 $ErrorActionPreference = "Stop"
-$header = Join-Path $SdkIncludeDir "asio.h"
-if (-not (Test-Path $header)) { throw "Official ASIO SDK header not found: $header" }
+$header = Join-Path $SdkIncludeDir "iasiodrv.h"
+if (-not (Test-Path $header)) { throw "Official ASIO SDK IASIO header not found: $header" }
 $compiler = Get-Command cl.exe -ErrorAction SilentlyContinue
 if (-not $compiler) { throw "Run this from an x64 Native Tools Command Prompt for Visual Studio (MSVC cl.exe required)." }
 $source = Join-Path $PSScriptRoot "asio_sdk_capability_probe_windows.cpp"
