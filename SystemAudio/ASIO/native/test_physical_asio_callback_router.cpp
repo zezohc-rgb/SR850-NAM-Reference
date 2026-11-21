@@ -13,6 +13,7 @@ int main() {
  sr850::VirtualAsioPhysicalTransport transport(stream);
  sr850::PhysicalAsioCallbackRouter router(transport);
  assert(!router.configure_frames(0));
+ assert(!router.configure_frames(128)); // virtual stream is 64 frames
  assert(router.configure_frames(64));
  Context context{&stream};
  float in[2][2][64]={},out[2][2][64]={};
@@ -21,6 +22,7 @@ int main() {
    float* outputs[2]={out[bank][0],out[bank][1]};
    assert(router.bind(bank,inputs,outputs));
  }
+ assert(!router.configure_frames(128)); // no reconfiguration after binding
  assert(transport.prepare({0.5f},48000,host,&context));
  assert(transport.start());
  in[0][0][0]=0.8f;in[0][1][0]=0.4f;
