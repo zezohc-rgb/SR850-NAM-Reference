@@ -32,7 +32,7 @@ int main() {
     assert(controller.start() && controller.running());
     assert(controller.stop() && !controller.running());
   }
-  assert(!backend.opened && backend.closes==1);
+  assert(!backend.opened && backend.closes==2);
   backend.prepared=false;
   source.caps.sample_rate=44100;
   {
