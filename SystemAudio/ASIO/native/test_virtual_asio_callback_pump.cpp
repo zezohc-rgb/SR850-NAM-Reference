@@ -22,12 +22,15 @@ int main() {
  assert(stream.prepare(128,2,2));
  assert(!pump.attach(nullptr,&ctx));
  assert(pump.attach(callback,&ctx));
+ assert(pump.configure_clock(48000));
  assert(pump.start());
  stream.input(0,0)[0]=0.8f;
  stream.input(1,0)[0]=0.6f;
  assert(pump.tick());
  assert(pump.tick());
  assert(ctx.calls==2);
+ assert(pump.sample_position()==256);
+ assert(pump.completed_blocks()==2);
  assert(stream.output(0,0)[0]>0.39f && stream.output(0,0)[0]<0.41f);
  assert(stream.output(1,0)[0]>0.29f && stream.output(1,0)[0]<0.31f);
  pump.stop();
