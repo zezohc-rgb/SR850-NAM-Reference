@@ -69,8 +69,42 @@ class VirtualAsioDriver final : public IASIO {
     std::strcpy(info->name,info->isInput==ASIOTrue ? "SR850 Guitar Input" : "SR850 Corrected Output");
     return ASE_OK;
   }
-  ASIOError createBuffers(ASIOBufferInfo*,long,long,ASIOCallbacks*) override {
-    return ASE_NotPresent; // No virtual audio callback/physical bridge yet.
+  ASIOError createBuffers(ASIOBufferInfo* infos,long count,long frames,
+                          ASIOCallbacks* callbacks) override {
+    if (!infos || !callbacks || count<=0 ||
+        !VirtualAsioCapabilities::supported_frames(frames) ||
+        stream_.state()!=VirtualAsioStreamCore::State::closed)
+      return ASE_InvalidParameter;
+    long inputs=0,outputs=0;
+    // Reject duplicates and incomplete channel maps before allocating.
+    bool seen_inputs[2]={false,false};
+    bool seen_outputs[2]={false,false};
+    for (long i=0;i<count;++i) {
+      const auto& info=infos[i];
+      if (info.isInput!=ASIOTrue && info.isInput!=ASIOFalse)
+        return ASE_InvalidParameter;
+      if (!VirtualAsioCapabilities::supported_channel(
+              info.channelNum,info.isInput==ASIOTrue)) return ASE_InvalidParameter;
+      bool* seen=info.isInput==ASIOTrue ? seen_inputs : seen_outputs;
+      if (seen[info.channelNum]) return ASE_InvalidParameter;
+      seen[info.channelNum]=true;
+      if (info.isInput==ASIOTrue) ++inputs; else ++outputs;
+    }
+    if (inputs!=VirtualAsioCapabilities::input_channels ||
+        outputs!=VirtualAsioCapabilities::output_channels) return ASE_InvalidParameter;
+    if (!stream_.prepare(static_cast<std::size_t>(frames),
+                         static_cast<std::size_t>(inputs),
+                         static_cast<std::size_t>(outputs))) return ASE_NoMemory;
+    for (long i=0;i<count;++i) {
+      auto& info=infos[i];
+      for (std::size_t bank=0;bank<2;++bank) {
+        info.buffers[bank]=info.isInput==ASIOTrue
+          ? static_cast<void*>(stream_.input(bank,static_cast<std::size_t>(info.channelNum)))
+          : static_cast<void*>(stream_.output(bank,static_cast<std::size_t>(info.channelNum)));
+      }
+    }
+    // Callback is intentionally not invoked until a physical clock is wired.
+    return ASE_OK;
   }
   ASIOError disposeBuffers() override { stream_.close(); return ASE_OK; }
   ASIOError controlPanel() override { return ASE_NotPresent; }
