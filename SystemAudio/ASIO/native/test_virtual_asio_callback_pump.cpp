@@ -2,11 +2,13 @@
 #include <cassert>
 struct Context {
  sr850::VirtualAsioStreamCore* stream;
+ sr850::VirtualAsioCallbackPump* pump;
  int calls=0;
 };
 void callback(void* raw,std::size_t bank) {
  auto& ctx=*static_cast<Context*>(raw);
  assert(bank==static_cast<std::size_t>(ctx.calls%2));
+ assert(ctx.pump->completed_blocks()==static_cast<std::uint64_t>(ctx.calls));
  float* input=ctx.stream->input(bank,0);
  float* output=ctx.stream->output(bank,0);
  assert(input && output);
@@ -16,7 +18,7 @@ void callback(void* raw,std::size_t bank) {
 int main() {
  sr850::VirtualAsioStreamCore stream;
  sr850::VirtualAsioCallbackPump pump(stream);
- Context ctx{&stream,0};
+ Context ctx{&stream,&pump,0};
  assert(!pump.start());
  assert(!pump.tick());
  assert(stream.prepare(128,2,2));
