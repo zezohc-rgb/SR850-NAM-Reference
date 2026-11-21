@@ -22,6 +22,11 @@ int main() {
   const StreamFormat app{48000,2,2,256,SampleType::float32};
   {
     PreflightBackendController controller(backend,source);
+    assert(!controller.prepare(app,1024));
+    assert(!backend.prepared);
+  }
+  {
+    PreflightBackendController controller(backend,source,ConversionSupport{true,true,false,false});
     assert(controller.prepare(app,1024));
     assert(backend.prepared);
     assert(controller.start() && controller.running());
