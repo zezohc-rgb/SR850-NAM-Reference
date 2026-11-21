@@ -21,6 +21,7 @@ class AsioDoubleBufferBridge {
       bank.host_in.assign(inputs_, nullptr);
       bank.host_out.assign(outputs_, nullptr);
       bank.device_out.assign(outputs_, nullptr);
+      bank.bound=false;
     }
   }
   bool bind(unsigned index, const float* const* device_in, float* const* host_in,
