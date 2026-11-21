@@ -5,6 +5,7 @@
 #include "virtual_asio_physical_transport.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 namespace sr850 {
 class PhysicalAsioCallbackRouter {
  public:
@@ -26,13 +27,31 @@ class PhysicalAsioCallbackRouter {
   bool buffer_switch(long index) noexcept {
     if (index<0 || index>1) return false;
     const auto bank=static_cast<std::size_t>(index);
-    if (!bound_[bank] || (transport_.completed_blocks()%2)!=bank) return false;
-    return transport_.process(inputs_[bank],outputs_[bank]);
+    if (!bound_[bank]) return false;
+    if ((transport_.completed_blocks()%2)!=bank ||
+        !transport_.process(inputs_[bank],outputs_[bank])) {
+      // Never leave stale playback samples in a rejected physical buffer.
+      // The buffer length is supplied during prepare, not inferred here.
+      silence(bank);
+      return false;
+    }
+    return true;
+  }
+  bool configure_frames(std::size_t frames) noexcept {
+    if (!frames || frames>8192) return false;
+    frames_=frames;
+    return true;
+  }
+  void silence(std::size_t bank) noexcept {
+    if (bank>1 || !bound_[bank] || !frames_) return;
+    for(std::size_t ch=0;ch<2;++ch)
+      std::memset(outputs_[bank][ch],0,frames_*sizeof(float));
   }
  private:
   VirtualAsioPhysicalTransport& transport_;
   const float* inputs_[2][2]={{nullptr,nullptr},{nullptr,nullptr}};
   float* outputs_[2][2]={{nullptr,nullptr},{nullptr,nullptr}};
   bool bound_[2]={false,false};
+  std::size_t frames_=0;
 };
 } // namespace sr850
