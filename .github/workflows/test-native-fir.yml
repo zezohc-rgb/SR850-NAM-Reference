@@ -28,6 +28,8 @@ jobs:
           buffers_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_playback_pipeline.cpp /Fe:pipeline_test.exe
           pipeline_test.exe
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_duplex_engine.cpp /Fe:duplex_test.exe
+          duplex_test.exe
       - name: Build and test (Linux GCC)
         if: runner.os == 'Linux'
         shell: bash
@@ -38,3 +40,5 @@ jobs:
           ./buffers_test
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_playback_pipeline.cpp -o pipeline_test
           ./pipeline_test
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_duplex_engine.cpp -o duplex_test
+          ./duplex_test
