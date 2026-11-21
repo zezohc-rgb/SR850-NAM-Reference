@@ -23,6 +23,18 @@ class PhysicalAsioStream {
   bool prepare(long input_channels,long output_channels,long frames) {
     if (prepared_ || started_ || input_channels<=0 || output_channels<=0 ||
         input_channels>64 || output_channels>64 || frames<=0) return false;
+    // Reject incompatible device formats before allocating driver buffers.
+    // The callback path currently interprets all channel buffers as float32.
+    for (long direction=0;direction<2;++direction) {
+      const long count=direction==0 ? input_channels : output_channels;
+      for (long channel=0;channel<count;++channel) {
+        ASIOChannelInfo info{};
+        info.channel=channel;
+        info.isInput=direction==0 ? ASIOTrue : ASIOFalse;
+        if (driver_.getChannelInfo(&info)!=ASE_OK ||
+            info.type!=ASIOSTFloat32LSB) return false;
+      }
+    }
     buffers_.clear();
     buffers_.reserve(static_cast<std::size_t>(input_channels+output_channels));
     for(long i=0;i<input_channels;++i) {
