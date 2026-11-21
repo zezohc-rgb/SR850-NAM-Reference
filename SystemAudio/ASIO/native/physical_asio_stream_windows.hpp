@@ -51,6 +51,9 @@ class PhysicalAsioStream {
     const ASIOError result=driver_.createBuffers(
       buffers_.data(),static_cast<long>(buffers_.size()),frames,&callbacks_);
     if (result!=ASE_OK) {
+      // ASIO drivers may partially allocate buffers before reporting failure.
+      // Attempt cleanup before returning to the caller.
+      driver_.disposeBuffers();
       buffers_.clear();
       return false;
     }
