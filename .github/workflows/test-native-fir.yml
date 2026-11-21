@@ -50,6 +50,8 @@ jobs:
           preflight_backend_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_format_preflight.cpp /Fe:format_preflight_test.exe
           format_preflight_test.exe
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_asio_float32_output_adapter.cpp /Fe:asio_output_adapter_test.exe
+          asio_output_adapter_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\asio_registry_windows.cpp /Fe:asio_registry.exe advapi32.lib ole32.lib
           asio_registry.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_com_driver_handle_windows.cpp /Fe:com_driver_test.exe ole32.lib
@@ -104,3 +106,5 @@ jobs:
           ./preflight_backend_test
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_format_preflight.cpp -o format_preflight_test
           ./format_preflight_test
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_asio_float32_output_adapter.cpp -o asio_output_adapter_test
+          ./asio_output_adapter_test
