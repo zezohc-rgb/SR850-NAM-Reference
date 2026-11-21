@@ -42,6 +42,8 @@ jobs:
           wav_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_wav_fir_integration.cpp /Fe:wav_fir_integration_test.exe
           wav_fir_integration_test.exe
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_asio_capabilities.cpp /Fe:asio_capabilities_test.exe
+          asio_capabilities_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\asio_registry_windows.cpp /Fe:asio_registry.exe advapi32.lib ole32.lib
           asio_registry.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_com_driver_handle_windows.cpp /Fe:com_driver_test.exe ole32.lib
@@ -88,3 +90,5 @@ jobs:
           ./wav_test
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_wav_fir_integration.cpp -o wav_fir_integration_test
           ./wav_fir_integration_test
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_asio_capabilities.cpp -o asio_capabilities_test
+          ./asio_capabilities_test
