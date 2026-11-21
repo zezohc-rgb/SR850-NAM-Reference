@@ -405,7 +405,6 @@ class Controller(QWidget):
             self.message=f"FIR {self.rate} Hz configurado no APO • Saida nao verificada"
         except Exception as exc:
             self.message="FALHA AO ATUALIZAR"
-            self.active=False
             QMessageBox.critical(self,"SR850 - acesso ao Equalizer APO",
                 str(exc)+"\\n\\nExecute o SR850 como administrador. "
                 "Se o erro continuar, verifique as permissoes do arquivo no Equalizer APO.")
