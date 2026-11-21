@@ -18,9 +18,17 @@ class PlaybackPipeline {
     channels_ = channels;
     maximum_frames_ = maximum_frames;
   }
+  bool can_process(const float* const* playback_in, float* const* playback_out,
+                   std::size_t frames) const noexcept {
+    if (!channels_ || !frames || frames > maximum_frames_ || !playback_in || !playback_out)
+      return false;
+    for (std::size_t ch=0; ch<channels_; ++ch)
+      if (!playback_in[ch] || !playback_out[ch]) return false;
+    return true;
+  }
   bool process(const float* const* playback_in, float* const* playback_out,
                std::size_t frames, float gain, bool correction_enabled) noexcept {
-    if (!channels_ || frames > maximum_frames_ || !playback_in || !playback_out) return false;
+    if (!can_process(playback_in, playback_out, frames)) return false;
     if (!planar_to_interleaved(playback_in, scratch_.data(), channels_, frames)) return false;
     fir_.process(scratch_.data(), frames, gain, correction_enabled);
     return interleaved_to_planar(scratch_.data(), playback_out, channels_, frames);
