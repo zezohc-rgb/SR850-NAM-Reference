@@ -31,5 +31,12 @@ int main() {
   bridge.configure(std::vector<float>{1.0f},1,2,4);
   assert(!bridge.process(0,4,1.0f,true));
   assert(!bridge.process(1,4,1.0f,true));
+  const float* di[1]={guitar[0]}; float* hi[1]={input_copy[0]};
+  const float* ho[2]={left[0],right[0]};
+  float* dout[2]={output_left[0],output_right[0]};
+  assert(bridge.bind(0,di,hi,ho,dout));
+  assert(bridge.process(0,4,1.0f,true));
+  assert(!bridge.bind(0,nullptr,hi,ho,dout));
+  assert(bridge.process(0,4,1.0f,true));
   std::cout<<"ASIO double-buffer bridge tests passed\\n";
 }
