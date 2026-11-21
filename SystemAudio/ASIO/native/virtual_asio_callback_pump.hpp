@@ -29,8 +29,8 @@ class VirtualAsioCallbackPump {
   bool tick() noexcept {
     if (stream_.state()!=VirtualAsioStreamCore::State::running ||
         !callback_) return false;
-    if (!clock_.advance()) return false;
     callback_(context_,next_bank_);
+    if (!clock_.advance()) return false;
     next_bank_^=1;
     return true;
   }
