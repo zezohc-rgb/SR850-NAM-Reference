@@ -7,7 +7,7 @@
 #include <objbase.h>
 #include <cstdio>
 #include <cwchar>
-#include "asio.h"
+#include "iasiodrv.h" // Defines the IASIO COM interface (asio.h alone does not).
 
 int wmain(int argc, wchar_t** argv) {
   if (argc != 3 || std::wcscmp(argv[1], L"--i-accept-driver-risk") != 0) {
