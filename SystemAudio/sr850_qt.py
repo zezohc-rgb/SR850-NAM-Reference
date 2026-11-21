@@ -3,6 +3,7 @@ import math
 import os
 import sys
 import subprocess
+import ctypes
 from pathlib import Path
 from scipy.io import wavfile
 
@@ -404,7 +405,10 @@ class Controller(QWidget):
             self.message=f"FIR {self.rate} Hz configurado no APO • Saida nao verificada"
         except Exception as exc:
             self.message="FALHA AO ATUALIZAR"
-            QMessageBox.critical(self,"SR850",str(exc))
+            self.active=False
+            QMessageBox.critical(self,"SR850 - acesso ao Equalizer APO",
+                str(exc)+"\\n\\nExecute o SR850 como administrador. "
+                "Se o erro continuar, verifique as permissoes do arquivo no Equalizer APO.")
 
     def toggle(self):
         if self.active:
@@ -452,6 +456,27 @@ if __name__=="__main__":
     if len(sys.argv)==4 and sys.argv[1]=="--watchdog":
         engine.watchdog(Path(sys.argv[3]), int(sys.argv[2]))
         sys.exit(0)
+    # Equalizer APO config is under Program Files and requires administrator access.
+    # Explicitly elevate the GUI instead of repeatedly failing on every knob move.
+    if sys.platform == "win32" and os.environ.get("QT_QPA_PLATFORM") != "offscreen":
+        if not ctypes.windll.shell32.IsUserAnAdmin():
+            if getattr(sys,"frozen",False):
+                command=sys.executable
+                params=""
+            else:
+                command=sys.executable
+                params=subprocess.list2cmdline([str(Path(__file__).resolve())])
+            result=ctypes.windll.shell32.ShellExecuteW(None,"runas",command,params,None,1)
+            if int(result)>32:
+                sys.exit(0)
+            # If elevation was cancelled, do not start a controller that cannot
+            # save FIR parameters. Never attempt to change APO ACLs automatically.
+            ctypes.windll.user32.MessageBoxW(
+                None,
+                "O SR850 precisa ser executado como administrador para alterar "
+                "os arquivos do Equalizer APO. Abra novamente e aceite a solicitacao do Windows.",
+                "SR850 - permissao necessaria",0x30)
+            sys.exit(1)
     app=QApplication(sys.argv)
     app.setStyle("Fusion")
     window=Controller()
