@@ -13,6 +13,10 @@ echo.
 echo --- Extended registry inspection ---
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0diagnose-asio.ps1"
 echo.
+echo.
+echo --- Fast Track COM server information ---
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0inspect-fast-track-com.ps1"
+echo.
 echo Finished. No driver was activated and no registry entries were changed.
 echo You may copy the driver names and CLSIDs shown above.
 pause
