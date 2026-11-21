@@ -42,6 +42,7 @@ jobs:
           asio_registry.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_com_driver_handle_windows.cpp /Fe:com_driver_test.exe ole32.lib
           com_driver_test.exe
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\asio_activation_probe_windows.cpp /Fe:asio_activation_probe.exe ole32.lib
       - name: Build and test (Linux GCC)
         if: runner.os == 'Linux'
         shell: bash
