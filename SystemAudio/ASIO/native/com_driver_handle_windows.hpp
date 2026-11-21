@@ -34,6 +34,9 @@ class ComDriverHandle {
     if (com_initialized_) { CoUninitialize(); com_initialized_ = false; }
   }
   bool active() const noexcept { return instance_ != nullptr; }
+  // Only for interface pointers obtained with the requested IID. The caller
+  // must not reinterpret this as IASIO without a verified SDK ABI.
+  void* interface_pointer() const noexcept { return instance_; }
   // COM initialization, use and close must occur on the same thread.
   // Fast Track's registered COM server declares ThreadingModel=Apartment.
   // This handle must not be moved to or destroyed from another thread.
