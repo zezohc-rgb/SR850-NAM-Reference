@@ -1,0 +1,31 @@
+name: Validate SR850 Native FIR Core
+on:
+  push:
+    branches: [feature/sr850-system-audio]
+    paths:
+      - 'SystemAudio/ASIO/native/**'
+      - '.github/workflows/test-native-fir.yml'
+  workflow_dispatch:
+
+jobs:
+  native-fir:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test (Windows MSVC)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_fir.cpp /Fe:fir_test.exe
+          fir_test.exe
+      - name: Build and test (Linux GCC)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_fir.cpp -o fir_test
+          ./fir_test
