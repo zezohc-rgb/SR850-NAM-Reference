@@ -64,6 +64,8 @@ jobs:
           virtual_asio_com_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_virtual_asio_callback_pump.cpp /Fe:virtual_callback_test.exe
           virtual_callback_test.exe
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_virtual_asio_offline_cycle.cpp /Fe:virtual_offline_cycle_test.exe
+          virtual_offline_cycle_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\asio_registry_windows.cpp /Fe:asio_registry.exe advapi32.lib ole32.lib
           asio_registry.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_com_driver_handle_windows.cpp /Fe:com_driver_test.exe ole32.lib
@@ -130,3 +132,5 @@ jobs:
           ./virtual_asio_caps_test
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_virtual_asio_callback_pump.cpp -o virtual_callback_test
           ./virtual_callback_test
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_virtual_asio_offline_cycle.cpp -o virtual_offline_cycle_test
+          ./virtual_offline_cycle_test
