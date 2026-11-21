@@ -15,7 +15,7 @@ struct StreamFormat {
 };
 enum class NegotiationResult {
   ok, invalid_configuration, unsupported_rate, unsupported_format,
-  channel_mismatch, buffer_mismatch
+  channel_mismatch, buffer_mismatch, format_conversion_required
 };
 inline NegotiationResult negotiate_direct(const StreamFormat& app,
                                           const StreamFormat& hardware,
