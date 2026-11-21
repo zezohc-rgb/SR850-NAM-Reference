@@ -51,6 +51,7 @@ jobs:
           Copy-Item asio_registry.exe,asio_activation_probe.exe asio-diagnostics/
           Copy-Item SystemAudio/ASIO/native/diagnose-asio.ps1 asio-diagnostics/
           Copy-Item SystemAudio/ASIO/native/run-safe-diagnostics.cmd asio-diagnostics/
+          Copy-Item SystemAudio/ASIO/native/inspect-fast-track-com.ps1 asio-diagnostics/
           Copy-Item SystemAudio/ASIO/native/DIAGNOSTICS.md asio-diagnostics/
       - uses: actions/upload-artifact@v4
         if: runner.os == 'Windows'
