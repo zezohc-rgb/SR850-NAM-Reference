@@ -8,7 +8,7 @@ from scipy.io import wavfile
 
 import numpy as np
 from PySide6.QtCore import Qt, QRectF, QPointF, QTimer
-from PySide6.QtGui import QColor, QPainter, QPen, QFont, QPainterPath, QBrush, QLinearGradient, QRadialGradient
+from PySide6.QtGui import QColor, QPainter, QPen, QFont, QPainterPath, QBrush, QLinearGradient, QRadialGradient, QPixmap
 from PySide6.QtWidgets import QApplication, QWidget, QMessageBox
 import sr850_system as engine
 from spectrum_monitor import SpectrumMonitor
@@ -21,6 +21,7 @@ class Controller(QWidget):
         self.setWindowTitle("SR850 System Reference  |  By Zezo HxCx")
         self.setMinimumSize(990, 612)
         self.resize(1100, 680)
+        self.reference_art=QPixmap(str(engine.bundled("SR850-visual-reference.png")))
         self.active=False
         self.rate=44100
         self.gain=0.0
@@ -73,6 +74,10 @@ class Controller(QWidget):
         ox=(self.width()-1100*scale)/2
         oy=(self.height()-680*scale)/2
         p.translate(ox,oy);p.scale(scale,scale)
+        if not self.reference_art.isNull():
+            self.paint_reference(p)
+            p.end()
+            return
         p.setPen(Qt.NoPen)
         shell=QLinearGradient(0,0,1100,680)
         shell.setColorAt(0,QColor("#252c32"));shell.setColorAt(.52,QColor("#0c1117"))
@@ -156,6 +161,80 @@ class Controller(QWidget):
         self.text(p,878,611,"CONFIGURAR APO",12,"#e8ad75",True)
         self.text(p,49,653,"ON/OFF controla o Equalizer APO  •  Fechar restaura o audio original",9,"#81919d")
         p.end()
+
+    def paint_reference(self,p):
+        """Render the approved photographic artwork as the actual interface skin.
+
+        The artwork remains a static backdrop; the graph and controls are live.
+        Coordinates are mapped to the 1100 x 680 design canvas.
+        """
+        p.drawPixmap(QRectF(0,0,1100,680),self.reference_art,QRectF(self.reference_art.rect()))
+        # Cover the original mockup plot; draw a fresh real-time plot over it.
+        graph_rect=QRectF(405,198,655,231)
+        p.setPen(QPen(QColor("#574a40"),1))
+        p.setBrush(QColor("#070b0e"))
+        p.drawRoundedRect(graph_rect,4,4)
+        r=QRectF(438,213,608,191)
+        p.save()
+        p.setClipRect(graph_rect.adjusted(2,2,-2,-2))
+        for db in (-12,-6,0,6,12):
+            y=r.bottom()-(db+12)/24*r.height()
+            p.setPen(QPen(QColor("#39434a"),1))
+            p.drawLine(QPointF(r.left(),y),QPointF(r.right(),y))
+            self.text(p,407,y+4,f"{db:+} dB",8,"#b8b6b2")
+        for hz in (20,50,100,200,500,1000,2000,5000,10000,20000):
+            x=r.left()+math.log10(hz/20)/3*r.width()
+            p.setPen(QPen(QColor("#303940"),1))
+            p.drawLine(QPointF(x,r.top()),QPointF(x,r.bottom()))
+        spectrum=self.spectrum
+        if spectrum is not None and len(spectrum)>1:
+            path=QPainterPath()
+            for i,db in enumerate(spectrum):
+                x=r.left()+i/(len(spectrum)-1)*r.width()
+                y=r.bottom()-max(0,min(1,(float(db)+90)/90))*r.height()
+                if i==0:path.moveTo(x,y)
+                else:path.lineTo(x,y)
+            fill=QPainterPath(path)
+            fill.lineTo(r.right(),r.bottom())
+            fill.lineTo(r.left(),r.bottom())
+            fill.closeSubpath()
+            glow=QLinearGradient(0,r.top(),0,r.bottom())
+            glow.setColorAt(0,QColor(0,190,238,95))
+            glow.setColorAt(1,QColor(0,130,190,0))
+            p.setPen(Qt.NoPen);p.setBrush(glow);p.drawPath(fill)
+            p.setBrush(Qt.NoBrush)
+            p.setPen(QPen(QColor("#50dcff"),1.7));p.drawPath(path)
+        curve=self.curves.get(self.rate)
+        if curve is not None:
+            path=QPainterPath()
+            for i,db in enumerate(curve):
+                x=r.left()+i/(len(curve)-1)*r.width()
+                y=r.bottom()-(max(-12,min(12,float(db)+self.gain))+12)/24*r.height()
+                if i==0:path.moveTo(x,y)
+                else:path.lineTo(x,y)
+            p.setPen(QPen(QColor("#ff9d1e" if self.active else "#9d6d37"),2.7))
+            p.setBrush(Qt.NoBrush);p.drawPath(path)
+        p.restore()
+        # Live text replaces the artwork's static readings.
+        p.setPen(Qt.NoPen);p.setBrush(QColor("#090a0c"))
+        p.drawRoundedRect(QRectF(528,626,111,28),5,5)
+        self.text(p,553,646,f"{self.gain:+.1f} dB",16,"#ffbf57",True)
+        p.setBrush(QColor("#0d1311"))
+        p.drawRoundedRect(QRectF(739,535,169,32),7,7)
+        p.setBrush(QColor("#48f28a" if self.active else "#d9a76d"))
+        p.drawEllipse(QPointF(760,551),5,5)
+        self.text(p,775,557,"Correcao Ativa" if self.active else "Bypass",13,
+                  "#8dff9e" if self.active else "#e6b17e",True)
+        # Indicate the selected sample rate on the existing artwork buttons.
+        selected=QRectF(269,537 if self.rate==44100 else 591,143,41)
+        p.setPen(QPen(QColor("#ffaf45"),3));p.setBrush(Qt.NoBrush)
+        p.drawRoundedRect(selected,9,9)
+        # Position feedback for the actual gain value.
+        angle=math.radians(225+(self.gain+12)/12*270)
+        cx,cy=580,568
+        p.setPen(QPen(QColor("#ffb65d"),3,Qt.SolidLine,Qt.RoundCap))
+        p.drawLine(QPointF(cx,cy),QPointF(cx+45*math.cos(angle),cy+45*math.sin(angle)))
+        self.text(p,744,624,self.monitor_status[:38],9,"#9caeb9")
 
     def panel(self,p,x,y,w,h):
         fill=QLinearGradient(x,y,x+w,y+h)
@@ -269,6 +348,14 @@ class Controller(QWidget):
 
     def mousePressEvent(self,event):
         x,y=self.design_pos(event)
+        if not self.reference_art.isNull():
+            if 75<x<195 and 525<y<655:self.toggle()
+            elif 265<x<420 and 532<y<584:self.change_rate(44100)
+            elif 265<x<420 and 585<y<640:self.change_rate(48000)
+            elif 500<x<660 and 505<y<630:
+                self.dragging=True
+                self.gain_from_reference(x)
+            return
         if 435<x<620 and 474<y<550:
             self.toggle()
         elif 672<x<747 and 486<y<533:
@@ -284,14 +371,20 @@ class Controller(QWidget):
     def mouseMoveEvent(self,event):
         if self.dragging:
             x,_=self.design_pos(event)
-            self.gain_from_x(x)
+            if not self.reference_art.isNull():self.gain_from_reference(x)
+            else:self.gain_from_x(x)
+
+    def gain_from_reference(self,x):
+        self.gain=round(max(-12,min(0,(x-500)/160*12-12))*2)/2
+        self.apply_live()
+        self.update()
 
     def mouseReleaseEvent(self,event):
         self.dragging=False
 
     def wheelEvent(self,event):
         x,y=self.design_pos(event)
-        if 857<x<1050 and 450<y<570:
+        if (not self.reference_art.isNull() and 500<x<660 and 505<y<630) or (self.reference_art.isNull() and 857<x<1050 and 450<y<570):
             self.gain=max(-12,min(0,round((self.gain+(0.5 if event.angleDelta().y()>0 else -0.5))*2)/2))
             self.apply_live()
             self.update()
