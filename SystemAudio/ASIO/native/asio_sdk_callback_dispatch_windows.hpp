@@ -18,6 +18,11 @@ class AsioSdkCallbackDispatch {
   void set_enabled(bool enabled) noexcept {
     enabled_.store(enabled, std::memory_order_relaxed);
   }
+  bool take_sample_rate_change(ASIOSampleRate& rate) noexcept {
+    if (!rate_changed_.exchange(false, std::memory_order_acq_rel)) return false;
+    rate = requested_rate_.load(std::memory_order_relaxed);
+    return true;
+  }
   // Call only after the host has completed createBuffers() and bind().
   // Do not change the active dispatcher until stop() has returned.
   static bool activate(AsioSdkCallbackDispatch* instance) noexcept {
@@ -49,8 +54,13 @@ class AsioSdkCallbackDispatch {
     buffer_switch(index,direct);
     return time;
   }
-  static void sample_rate_changed(ASIOSampleRate) noexcept {
-    // Host must stop/reconfigure outside the real-time callback.
+  static void sample_rate_changed(ASIOSampleRate rate) noexcept {
+    // Never reconfigure inside the driver callback. Control thread polls flag.
+    auto* self=active_.load(std::memory_order_acquire);
+    if (self) {
+      self->requested_rate_.store(rate, std::memory_order_relaxed);
+      self->rate_changed_.store(true, std::memory_order_release);
+    }
   }
   static long asio_message(long selector,long,long*,double*) noexcept {
     // Advertise only selector-supported query; no reset/resync support yet.
@@ -62,6 +72,8 @@ class AsioSdkCallbackDispatch {
   std::size_t frames_;
   std::atomic<float> gain_{1.0f};
   std::atomic<bool> enabled_{true};
+  std::atomic<ASIOSampleRate> requested_rate_{0};
+  std::atomic<bool> rate_changed_{false};
   inline static std::atomic<AsioSdkCallbackDispatch*> active_{nullptr};
 };
 } // namespace sr850
