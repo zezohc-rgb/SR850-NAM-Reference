@@ -19,9 +19,10 @@ class Controller(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SR850 System Reference  |  By Zezo HxCx")
-        self.setMinimumSize(990, 612)
-        self.resize(1100, 680)
+        self.setMinimumSize(900, 600)
+        self.resize(1100, 733)
         self.reference_art=QPixmap(str(engine.bundled("SR850-visual-reference.png")))
+        self.design_height=733 if not self.reference_art.isNull() else 680
         self.active=False
         self.rate=44100
         self.gain=0.0
@@ -39,6 +40,8 @@ class Controller(QWidget):
         self.curves={}
         for rate in (44100,48000):
             self.curves[rate]=self.load_curve(rate)
+        if self.reference_art.isNull():
+            self.message="ARTE AUSENTE: SR850-visual-reference.png"
         if self.config_dir:
             try:
                 engine.cleanup(self.config_dir/"config.txt")
@@ -70,9 +73,9 @@ class Controller(QWidget):
         p.setRenderHint(QPainter.Antialiasing)
         # Design space is fixed and uniformly scaled, keeping hit targets aligned.
         p.fillRect(self.rect(),QColor("#070a0d"))
-        scale=min(self.width()/1100,self.height()/680)
+        scale=min(self.width()/1100,self.height()/self.design_height)
         ox=(self.width()-1100*scale)/2
-        oy=(self.height()-680*scale)/2
+        oy=(self.height()-self.design_height*scale)/2
         p.translate(ox,oy);p.scale(scale,scale)
         if not self.reference_art.isNull():
             self.paint_reference(p)
@@ -168,13 +171,13 @@ class Controller(QWidget):
         The artwork remains a static backdrop; the graph and controls are live.
         Coordinates are mapped to the 1100 x 680 design canvas.
         """
-        p.drawPixmap(QRectF(0,0,1100,680),self.reference_art,QRectF(self.reference_art.rect()))
+        p.drawPixmap(QRectF(0,0,1100,733),self.reference_art,QRectF(self.reference_art.rect()))
         # Cover the original mockup plot; draw a fresh real-time plot over it.
-        graph_rect=QRectF(405,198,655,231)
+        graph_rect=QRectF(405,209,659,287)
         p.setPen(QPen(QColor("#574a40"),1))
         p.setBrush(QColor("#070b0e"))
         p.drawRoundedRect(graph_rect,4,4)
-        r=QRectF(438,213,608,191)
+        r=QRectF(408,227,655,239)
         p.save()
         p.setClipRect(graph_rect.adjusted(2,2,-2,-2))
         for db in (-12,-6,0,6,12):
@@ -217,24 +220,24 @@ class Controller(QWidget):
         p.restore()
         # Live text replaces the artwork's static readings.
         p.setPen(Qt.NoPen);p.setBrush(QColor("#090a0c"))
-        p.drawRoundedRect(QRectF(528,626,111,28),5,5)
-        self.text(p,553,646,f"{self.gain:+.1f} dB",16,"#ffbf57",True)
+        p.drawRoundedRect(QRectF(528,671,111,28),5,5)
+        self.text(p,553,691,f"{self.gain:+.1f} dB",16,"#ffbf57",True)
         p.setBrush(QColor("#0d1311"))
-        p.drawRoundedRect(QRectF(739,535,169,32),7,7)
+        p.drawRoundedRect(QRectF(738,576,169,31),7,7)
         p.setBrush(QColor("#48f28a" if self.active else "#d9a76d"))
-        p.drawEllipse(QPointF(760,551),5,5)
-        self.text(p,775,557,"Correcao Ativa" if self.active else "Bypass",13,
+        p.drawEllipse(QPointF(760,592),5,5)
+        self.text(p,775,598,"Correcao Ativa" if self.active else "Bypass",13,
                   "#8dff9e" if self.active else "#e6b17e",True)
         # Indicate the selected sample rate on the existing artwork buttons.
-        selected=QRectF(269,537 if self.rate==44100 else 591,143,41)
+        selected=QRectF(270,575 if self.rate==44100 else 629,142,43)
         p.setPen(QPen(QColor("#ffaf45"),3));p.setBrush(Qt.NoBrush)
         p.drawRoundedRect(selected,9,9)
         # Position feedback for the actual gain value.
         angle=math.radians(225+(self.gain+12)/12*270)
-        cx,cy=580,568
+        cx,cy=580,618
         p.setPen(QPen(QColor("#ffb65d"),3,Qt.SolidLine,Qt.RoundCap))
         p.drawLine(QPointF(cx,cy),QPointF(cx+45*math.cos(angle),cy+45*math.sin(angle)))
-        self.text(p,744,624,self.monitor_status[:38],9,"#9caeb9")
+        self.text(p,745,708,self.monitor_status[:38],9,"#9caeb9")
 
     def panel(self,p,x,y,w,h):
         fill=QLinearGradient(x,y,x+w,y+h)
@@ -336,9 +339,9 @@ class Controller(QWidget):
         self.update()
 
     def design_pos(self,event):
-        scale=min(self.width()/1100,self.height()/680)
+        scale=min(self.width()/1100,self.height()/self.design_height)
         ox=(self.width()-1100*scale)/2
-        oy=(self.height()-680*scale)/2
+        oy=(self.height()-self.design_height*scale)/2
         return ((event.position().x()-ox)/scale,(event.position().y()-oy)/scale)
 
     def gain_from_x(self,x):
@@ -349,10 +352,10 @@ class Controller(QWidget):
     def mousePressEvent(self,event):
         x,y=self.design_pos(event)
         if not self.reference_art.isNull():
-            if 75<x<195 and 525<y<655:self.toggle()
-            elif 265<x<420 and 532<y<584:self.change_rate(44100)
-            elif 265<x<420 and 585<y<640:self.change_rate(48000)
-            elif 500<x<660 and 505<y<630:
+            if 75<x<195 and 550<y<690:self.toggle()
+            elif 265<x<420 and 570<y<625:self.change_rate(44100)
+            elif 265<x<420 and 626<y<681:self.change_rate(48000)
+            elif 500<x<660 and 550<y<675:
                 self.dragging=True
                 self.gain_from_reference(x)
             return
@@ -384,7 +387,7 @@ class Controller(QWidget):
 
     def wheelEvent(self,event):
         x,y=self.design_pos(event)
-        if (not self.reference_art.isNull() and 500<x<660 and 505<y<630) or (self.reference_art.isNull() and 857<x<1050 and 450<y<570):
+        if (not self.reference_art.isNull() and 500<x<660 and 550<y<675) or (self.reference_art.isNull() and 857<x<1050 and 450<y<570):
             self.gain=max(-12,min(0,round((self.gain+(0.5 if event.angleDelta().y()>0 else -0.5))*2)/2))
             self.apply_live()
             self.update()
