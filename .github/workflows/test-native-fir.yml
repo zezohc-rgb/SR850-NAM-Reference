@@ -34,6 +34,8 @@ jobs:
           formats_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_stream_negotiation.cpp /Fe:negotiation_test.exe
           negotiation_test.exe
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_device_session.cpp /Fe:session_test.exe
+          session_test.exe
       - name: Build and test (Linux GCC)
         if: runner.os == 'Linux'
         shell: bash
@@ -50,3 +52,5 @@ jobs:
           ./formats_test
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_stream_negotiation.cpp -o negotiation_test
           ./negotiation_test
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_device_session.cpp -o session_test
+          ./session_test
