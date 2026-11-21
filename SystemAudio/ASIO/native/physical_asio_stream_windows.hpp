@@ -45,6 +45,8 @@ class PhysicalAsioStream {
     prepared_=true;
     return true;
   }
+  // IASIO buffers are valid only after prepare() succeeds.
+  // The caller must validate ASIOSTFloat32LSB on every selected channel.
   // Bind both host and physical banks before calling start().
   const std::vector<ASIOBufferInfo>& buffers() const noexcept { return buffers_; }
   bool start() noexcept {
