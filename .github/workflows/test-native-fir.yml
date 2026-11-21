@@ -30,6 +30,8 @@ jobs:
           pipeline_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_duplex_engine.cpp /Fe:duplex_test.exe
           duplex_test.exe
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_sample_formats.cpp /Fe:formats_test.exe
+          formats_test.exe
       - name: Build and test (Linux GCC)
         if: runner.os == 'Linux'
         shell: bash
@@ -42,3 +44,5 @@ jobs:
           ./pipeline_test
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_duplex_engine.cpp -o duplex_test
           ./duplex_test
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_sample_formats.cpp -o formats_test
+          ./formats_test
