@@ -2,13 +2,15 @@
 // Adapter for ASIO-capability-aware backends. No driver is loaded here.
 #include "asio_backend.hpp"
 #include "asio_preflight.hpp"
+#include "format_preflight.hpp"
 
 namespace sr850 {
 class PreflightBackendController {
  public:
   PreflightBackendController(AsioBackend& backend,
-                             AsioCapabilitySource& source) noexcept
-      : backend_(backend), source_(source) {}
+                             AsioCapabilitySource& source,
+                             ConversionSupport conversion = {}) noexcept
+      : backend_(backend), source_(source), conversion_(conversion) {}
   PreflightBackendController(const PreflightBackendController&) = delete;
   PreflightBackendController& operator=(const PreflightBackendController&) = delete;
   ~PreflightBackendController() { close(); }
@@ -21,7 +23,7 @@ class PreflightBackendController {
     if (preflight_asio_stream(source_, requested, max_frames, caps) !=
             AsioPreflightError::ok ||
         !backend_.query_stream(reported) ||
-        negotiate_direct(requested, reported, max_frames) != NegotiationResult::ok ||
+        negotiate_with_conversion(requested, reported, max_frames, conversion_) != NegotiationResult::ok ||
         !backend_.prepare(requested)) {
       backend_.close();
       return false;
@@ -49,6 +51,7 @@ class PreflightBackendController {
   enum class State { closed, prepared, running };
   AsioBackend& backend_;
   AsioCapabilitySource& source_;
+  ConversionSupport conversion_;
   State state_ = State::closed;
 };
 } // namespace sr850
