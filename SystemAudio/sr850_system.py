@@ -70,11 +70,17 @@ def install(config_dir, sample_rate=44100, preamp_db=-6.0):
     # Convolution takes a WAV impulse; same SR850 correction as the VST3.
     # Use relative paths inside Equalizer APO config directory.
     import shutil
-    shutil.copyfile(fir,config_dir/fir_name)
-    (config_dir/CONFIG_NAME).write_text(
+    # FIR is immutable; avoid overwriting a WAV in use on every gain change.
+    target_fir=config_dir/fir_name
+    if not target_fir.is_file() or target_fir.stat().st_size != fir.stat().st_size:
+        shutil.copyfile(fir,target_fir)
+    # Replace the managed file atomically instead of truncating it in place.
+    settings=(
         "# SR850 Reference - FIR; correction only while app is running\n"
         f"Preamp: {preamp_db:+.1f} dB\n"
-        f"Convolution: {fir_name}\n",encoding="utf-8")
+        f"Convolution: {fir_name}\n"
+    )
+    atomic_write(config_dir/CONFIG_NAME,settings.encode("utf-8"))
     newline="\r\n" if "\r\n" in text else "\n"
     block=START+newline+LINE+newline+END+newline
     write_config(config,text.rstrip("\r\n")+newline+block,bom)
