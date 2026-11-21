@@ -35,7 +35,16 @@ int main() {
  assert(pump.completed_blocks()==2);
  assert(stream.output(0,0)[0]>0.39f && stream.output(0,0)[0]<0.41f);
  assert(stream.output(1,0)[0]>0.29f && stream.output(1,0)[0]<0.31f);
+ assert(pump.tick());
  pump.stop();
  assert(!pump.tick());
+ ctx.calls=0;
+ // Restart after an odd number of blocks must return to bank zero.
+ assert(pump.start());
+ assert(pump.sample_position()==0);
+ assert(pump.completed_blocks()==0);
+ assert(pump.tick());
+ assert(pump.sample_position()==128);
+ pump.stop();
  stream.close();
 }
