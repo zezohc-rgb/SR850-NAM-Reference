@@ -1,3 +1,4 @@
+#include "virtual_asio_driver_windows.hpp"
 // Compile-only verification of official ASIO callback signatures.
 // Does not initialize, activate, or open any physical ASIO driver.
 #ifdef _WIN32
