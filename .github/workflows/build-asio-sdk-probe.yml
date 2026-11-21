@@ -27,6 +27,8 @@ jobs:
           SDK_DIR: ${{ inputs.sdk_include_dir }}
         run: |
           cl /nologo /std:c++17 /EHsc /W4 /WX /I"%SDK_DIR%" SystemAudio\ASIO\native\asio_sdk_capability_probe_windows.cpp /Fe:asio_sdk_capability_probe.exe ole32.lib
+          cl /nologo /std:c++17 /EHsc /W4 /WX /I"%SDK_DIR%" SystemAudio\ASIO\native\test_asio_sdk_callbacks_windows.cpp /Fe:asio_sdk_callbacks_test.exe
+          asio_sdk_callbacks_test.exe
       - uses: actions/upload-artifact@v4
         with:
           name: SR850-ASIO-SDK-Probe-Opt-In
