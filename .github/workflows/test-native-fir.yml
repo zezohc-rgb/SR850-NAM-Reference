@@ -26,6 +26,8 @@ jobs:
           fir_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_audio_buffers.cpp /Fe:buffers_test.exe
           buffers_test.exe
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_playback_pipeline.cpp /Fe:pipeline_test.exe
+          pipeline_test.exe
       - name: Build and test (Linux GCC)
         if: runner.os == 'Linux'
         shell: bash
@@ -34,3 +36,5 @@ jobs:
           ./fir_test
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_audio_buffers.cpp -o buffers_test
           ./buffers_test
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_playback_pipeline.cpp -o pipeline_test
+          ./pipeline_test
