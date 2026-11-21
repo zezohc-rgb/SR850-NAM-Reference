@@ -58,14 +58,21 @@ class PhysicalAsioStream {
       return false;
     }
     prepared_=true;
+    buffers_bound_=false;
     return true;
   }
   // IASIO buffers are valid only after prepare() succeeds.
   // The caller must validate ASIOSTFloat32LSB on every selected channel.
+  // Call only after both banks were successfully bound to the callback bridge.
+  bool mark_buffers_bound() noexcept {
+    if (!prepared_ || started_) return false;
+    buffers_bound_=true;
+    return true;
+  }
   // Bind both host and physical banks before calling start().
   const std::vector<ASIOBufferInfo>& buffers() const noexcept { return buffers_; }
   bool start() noexcept {
-    if (!prepared_ || started_) return false;
+    if (!prepared_ || !buffers_bound_ || started_) return false;
     if (!AsioSdkCallbackDispatch::activate(&dispatch_)) return false;
     if (driver_.start()!=ASE_OK) {
       AsioSdkCallbackDispatch::deactivate(&dispatch_);
@@ -84,6 +91,7 @@ class PhysicalAsioStream {
     stop();
     if (prepared_) driver_.disposeBuffers();
     prepared_=false;
+    buffers_bound_=false;
     buffers_.clear();
   }
  private:
@@ -91,7 +99,7 @@ class PhysicalAsioStream {
   AsioSdkCallbackDispatch& dispatch_;
   ASIOCallbacks callbacks_{};
   std::vector<ASIOBufferInfo> buffers_;
-  bool prepared_=false,started_=false;
+  bool prepared_=false,started_=false,buffers_bound_=false;
 };
 } // namespace sr850
 #endif
