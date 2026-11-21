@@ -12,6 +12,8 @@ int main() {
  assert(stream.prepare(64,2,2));
  sr850::VirtualAsioPhysicalTransport transport(stream);
  sr850::PhysicalAsioCallbackRouter router(transport);
+ assert(!router.configure_frames(0));
+ assert(router.configure_frames(64));
  Context context{&stream};
  float in[2][2][64]={},out[2][2][64]={};
  for(std::size_t bank=0;bank<2;++bank) {
@@ -25,7 +27,9 @@ int main() {
  in[1][0][0]=0.6f;in[1][1][0]=0.2f;
  assert(!router.buffer_switch(-1));
  assert(!router.buffer_switch(2));
+ out[1][0][0]=0.9f;
  assert(!router.buffer_switch(1)); // unexpected bank order
+ assert(out[1][0][0]==0.0f); // stale playback must be silenced
  assert(router.buffer_switch(0));
  assert(router.buffer_switch(1));
  assert(std::fabs(out[0][0][0]-0.4f)<1e-6f);
