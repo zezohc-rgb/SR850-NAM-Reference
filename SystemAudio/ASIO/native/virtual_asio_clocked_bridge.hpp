@@ -17,7 +17,6 @@ class VirtualAsioClockedBridge {
     if (!host || stream.state()!=VirtualAsioStreamCore::State::prepared)
       return false;
     if (!cycle_.configure(stream,impulse)) return false;
-    pump_= &stream;
     host_=host;
     host_context_=context;
     // No allocations occur after successful preparation.
@@ -44,7 +43,6 @@ class VirtualAsioClockedBridge {
   }
   VirtualAsioCallbackPump callback_pump_;
   VirtualAsioOfflineCycle cycle_;
-  VirtualAsioStreamCore* pump_=nullptr;
   HostCallback host_=nullptr;
   void* host_context_=nullptr;
 };
