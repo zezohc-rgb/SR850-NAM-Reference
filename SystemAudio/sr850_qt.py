@@ -1,15 +1,17 @@
 """SR850 premium Qt controller. DSP and safe APO cleanup remain in sr850_system."""
 import math
+import os
 import sys
 import subprocess
 from pathlib import Path
 from scipy.io import wavfile
 
 import numpy as np
-from PySide6.QtCore import Qt, QRectF, QPointF
+from PySide6.QtCore import Qt, QRectF, QPointF, QTimer
 from PySide6.QtGui import QColor, QPainter, QPen, QFont, QPainterPath, QBrush, QLinearGradient, QRadialGradient
 from PySide6.QtWidgets import QApplication, QWidget, QMessageBox
 import sr850_system as engine
+from spectrum_monitor import SpectrumMonitor
 
 BG="#101419"; PANEL="#1c242c"; GOLD="#eda35c"; TEXT="#f3e8d8"; MUTED="#9ba9b4"
 
@@ -25,6 +27,14 @@ class Controller(QWidget):
         self.config_dir=engine.find_apo()
         self.message="AUDIO ORIGINAL  |  CORRECAO DESLIGADA"
         self.dragging=False
+        self.monitor=SpectrumMonitor()
+        self.spectrum=np.full(500,-90.0)
+        self.monitor_status='WASAPI: aguardando'
+        self.frame_timer=QTimer(self)
+        self.frame_timer.timeout.connect(self.refresh_spectrum)
+        if os.environ.get('QT_QPA_PLATFORM')!='offscreen':
+            self.monitor.start()
+            self.frame_timer.start(45)
         self.curves={}
         for rate in (44100,48000):
             self.curves[rate]=self.load_curve(rate)
@@ -96,7 +106,7 @@ class Controller(QWidget):
         self.text(p,441,175,"MEASURED FIR TRANSFER  /  LOG FREQUENCY",9,"#8b9aa5")
         self.graph(p,QRectF(473,206,554,163))
         self.text(p,473,405,"—  CORRECTION",10,"#e8a366")
-        self.text(p,666,405,"- -  FLAT REFERENCE",10,"#9ba7b1")
+        self.text(p,666,405,"—  LIVE SPECTRUM (WASAPI)",10,"#5acde0")
         # Controls use a real rack-style layout with separate insets.
         self.panel(p,412,434,651,134)
         self.text(p,439,461,"CORRECTION",11,"#abb6be",True)
@@ -135,7 +145,8 @@ class Controller(QWidget):
         p.drawRoundedRect(QRectF(35,581,1028,58),9,9)
         p.setBrush(QColor("#58d69b" if self.active else "#d49a63"))
         p.drawEllipse(QPointF(57,603),5,5)
-        self.text(p,73,607,self.message[:72],11,"#c2d1d9")
+        self.text(p,73,601,self.message[:72],10,"#c2d1d9")
+        self.text(p,73,619,self.monitor_status[:80],9,"#68b5c8")
         p.setPen(QPen(QColor("#a36a3f"),1))
         p.setBrush(QColor("#31251f"));p.drawRoundedRect(QRectF(857,590,183,33),7,7)
         self.text(p,878,611,"CONFIGURAR APO",12,"#e8ad75",True)
@@ -200,6 +211,17 @@ class Controller(QWidget):
         zero=r.bottom()-r.height()/2
         p.setPen(QPen(QColor("#8c9aa5"),1,Qt.DashLine))
         p.drawLine(QPointF(r.left(),zero),QPointF(r.right(),zero))
+        # Live audio spectrum in dBFS, independently scaled from FIR gain.
+        spectrum=self.spectrum
+        if spectrum is not None and len(spectrum)>1:
+            path=QPainterPath()
+            for i,db in enumerate(spectrum):
+                xx=r.left()+i/(len(spectrum)-1)*r.width()
+                yy=r.bottom()-max(0,min(1,(float(db)+90)/90))*r.height()
+                if i==0:path.moveTo(xx,yy)
+                else:path.lineTo(xx,yy)
+            p.setPen(QPen(QColor("#50c8e4"),1.5))
+            p.drawPath(path)
         curve=self.curves[self.rate]
         if self.active and curve is not None:
             path=QPainterPath()
@@ -216,6 +238,10 @@ class Controller(QWidget):
         for hz in (20,100,1000,10000,20000):
             xx=r.left()+math.log10(hz/20)/3*r.width()
             self.text(p,xx-12,r.bottom()+20,f"{hz//1000}k" if hz>=1000 else str(hz),9,MUTED)
+
+    def refresh_spectrum(self):
+        self.spectrum,self.monitor_status=self.monitor.snapshot()
+        self.update()
 
     def design_pos(self,event):
         scale=min(self.width()/1100,self.height()/680)
@@ -308,6 +334,8 @@ class Controller(QWidget):
         QMessageBox.warning(self,"SR850","Configurator do Equalizer APO nao encontrado.")
 
     def closeEvent(self,event):
+        self.frame_timer.stop()
+        self.monitor.stop()
         if self.disable():event.accept()
         else:event.ignore()
 
