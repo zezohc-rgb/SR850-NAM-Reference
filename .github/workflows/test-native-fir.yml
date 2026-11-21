@@ -68,6 +68,8 @@ jobs:
           virtual_offline_cycle_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_virtual_asio_sample_clock.cpp /Fe:virtual_sample_clock_test.exe
           virtual_sample_clock_test.exe
+          cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_virtual_asio_clocked_bridge.cpp /Fe:virtual_clocked_bridge_test.exe
+          virtual_clocked_bridge_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\asio_registry_windows.cpp /Fe:asio_registry.exe advapi32.lib ole32.lib
           asio_registry.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_com_driver_handle_windows.cpp /Fe:com_driver_test.exe ole32.lib
@@ -138,3 +140,5 @@ jobs:
           ./virtual_offline_cycle_test
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_virtual_asio_sample_clock.cpp -o virtual_sample_clock_test
           ./virtual_sample_clock_test
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -pedantic SystemAudio/ASIO/native/test_virtual_asio_clocked_bridge.cpp -o virtual_clocked_bridge_test
+          ./virtual_clocked_bridge_test
