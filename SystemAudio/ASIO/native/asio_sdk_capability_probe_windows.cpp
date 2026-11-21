@@ -31,11 +31,8 @@ int wmain(int argc, wchar_t** argv) {
   }
   // init() can load device-specific code and may destabilize legacy drivers.
   // Explicit flag is required, and this probe must never run in CI.
-  ASIODriverInfo info{};
-  info.asioVersion = 2;
-  info.sysRef = GetDesktopWindow();
   // IASIO::init returns ASIOBool; no audio stream is started.
-  const ASIOBool ready = driver->init(info.sysRef);
+  const ASIOBool ready = driver->init(GetDesktopWindow());
   if (!ready) {
     std::fprintf(stderr, "ASIO init failed. No buffers were created.\\n");
     driver->Release();
