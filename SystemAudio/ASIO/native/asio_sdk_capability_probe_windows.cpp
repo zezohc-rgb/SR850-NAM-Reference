@@ -44,6 +44,22 @@ int wmain(int argc, wchar_t** argv) {
   const ASIOError channels=driver->getChannels(&inputs,&outputs);
   const ASIOError buffers=driver->getBufferSize(&minimum,&maximum,&preferred,&granularity);
   const ASIOError sample_rate=driver->getSampleRate(&rate);
+  bool channel_info_ok = true;
+  if (channels == ASE_OK && inputs >= 0 && outputs >= 0 && inputs <= 64 && outputs <= 64) {
+    for (long direction = 0; direction < 2; ++direction) {
+      const long count = direction == 0 ? inputs : outputs;
+      for (long index = 0; index < count; ++index) {
+        ASIOChannelInfo info{};
+        info.channel = index;
+        info.isInput = direction == 0 ? ASIOTrue : ASIOFalse;
+        const ASIOError result = driver->getChannelInfo(&info);
+        if (result != ASE_OK) { channel_info_ok = false; continue; }
+        std::printf("%s channel %ld: sample-type=%d active=%d name=%s\\n",
+                    direction == 0 ? "Input" : "Output", index,
+                    static_cast<int>(info.type), static_cast<int>(info.isActive), info.name);
+      }
+    }
+  } else { channel_info_ok = false; }
   if (channels == ASE_OK && buffers == ASE_OK && sample_rate == ASE_OK) {
     std::printf("Inputs: %ld; outputs: %ld\\n",inputs,outputs);
     std::printf("Buffer: min=%ld max=%ld preferred=%ld granularity=%ld\\n",
@@ -54,7 +70,7 @@ int wmain(int argc, wchar_t** argv) {
   }
   driver->Release();
   CoUninitialize();
-  return (channels == ASE_OK && buffers == ASE_OK && sample_rate == ASE_OK) ? 0 : 7;
+  return (channels == ASE_OK && buffers == ASE_OK && sample_rate == ASE_OK && channel_info_ok) ? 0 : 7;
 }
 #else
 #error This probe is Windows-only.
