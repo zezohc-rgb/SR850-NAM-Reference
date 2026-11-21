@@ -42,6 +42,7 @@ class PreflightBackendController {
     return true;
   }
   void close() noexcept {
+    if (state_ == State::closed) return;
     if (state_ == State::running) backend_.stop();
     backend_.close();
     state_ = State::closed;
