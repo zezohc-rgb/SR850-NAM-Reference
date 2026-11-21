@@ -33,6 +33,7 @@ class AsioDoubleBufferBridge {
     for (std::size_t i=0;i<outputs_;++i)
       if (!host_out[i] || !device_out[i]) return false;
     Bank& bank=banks_[index];
+    bank.bound=false;
     for (std::size_t i=0;i<inputs_;++i) {
       bank.device_in[i]=device_in[i]; bank.host_in[i]=host_in[i];
     }
