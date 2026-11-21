@@ -7,7 +7,7 @@ from scipy.io import wavfile
 
 import numpy as np
 from PySide6.QtCore import Qt, QRectF, QPointF
-from PySide6.QtGui import QColor, QPainter, QPen, QFont, QPainterPath, QBrush
+from PySide6.QtGui import QColor, QPainter, QPen, QFont, QPainterPath, QBrush, QLinearGradient, QRadialGradient
 from PySide6.QtWidgets import QApplication, QWidget, QMessageBox
 import sr850_system as engine
 
@@ -17,7 +17,7 @@ class Controller(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SR850 System Reference  |  By Zezo HxCx")
-        self.setMinimumSize(1020, 630)
+        self.setMinimumSize(990, 612)
         self.resize(1100, 680)
         self.active=False
         self.rate=44100
@@ -57,62 +57,98 @@ class Controller(QWidget):
     def paintEvent(self,event):
         p=QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
-        w=self.width(); h=self.height()
-        p.fillRect(self.rect(),QColor(BG))
-        p.fillRect(0,0,w,66,QColor("#0a0e13"))
-        p.setPen(QPen(QColor("#6a4528"),2)); p.drawLine(0,66,w,66)
-        self.text(p,30,44,"SR850  SYSTEM REFERENCE",24,TEXT,True)
-        self.text(p,w-190,40,"BY ZEZO HXCX",12,GOLD,True)
-        self.panel(p,24,88,344,h-166)
-        self.text(p,48,133,"SAMSON",20,GOLD,True)
-        self.text(p,47,208,"SR850",66,TEXT,True)
-        self.text(p,49,241,"REFERENCE HEADPHONE CORRECTION",11,MUTED)
-        self.headphones(p,196,395)
-        self.text(p,49,h-125,"LINEAR PHASE FIR",13,GOLD,True)
-        self.text(p,49,h-99,"WINDOWS SYSTEM AUDIO",11,MUTED)
-        left=390; right=w-24; graph_bottom=365
-        self.panel(p,left,88,right-left,graph_bottom-88)
-        self.text(p,left+22,125,"FREQUENCY RESPONSE",17,TEXT,True)
-        self.text(p,right-195,124,"FIR RESPONSE / dB",11,MUTED)
-        self.graph(p,QRectF(left+55,160,right-left-80,172))
-        cy=385; ch=h-465
-        self.panel(p,left,cy,185,ch)
-        self.text(p,left+20,cy+33,"CORRECTION",14,MUTED,True)
-        center=QPointF(left+92,cy+109)
-        p.setPen(QPen(QColor("#35d994" if self.active else GOLD),5))
-        p.setBrush(QColor("#10161d"));p.drawEllipse(center,43,43)
-        self.text(p,left+74,cy+122,"⏻",35,"#35d994" if self.active else GOLD,True)
-        self.text(p,left+40,cy+181,"ON" if self.active else "OFF",16,"#35d994" if self.active else MUTED,True)
-        sx=left+201
-        self.panel(p,sx,cy,195,ch)
-        self.text(p,sx+17,cy+33,"SAMPLE RATE",14,MUTED,True)
-        for i,(rate,label) in enumerate(((44100,"44.1"),(48000,"48"))):
-            rect=QRectF(sx+13+i*91,cy+70,84,58)
-            p.setPen(QPen(QColor(GOLD if self.rate==rate else "#4b5964"),2))
-            p.setBrush(QColor("#59371e" if self.rate==rate else "#10161d"))
-            p.drawRoundedRect(rect,8,8)
-            self.text(p,rect.left()+13,rect.top()+35,label+"k",15,TEXT,True)
-        gx=sx+211
-        self.panel(p,gx,cy,right-gx,ch)
-        self.text(p,gx+19,cy+33,"OUTPUT GAIN / HEADROOM",14,MUTED,True)
-        self.text(p,gx+19,cy+95,f"{self.gain:+.1f} dB",31,GOLD,True)
-        start=gx+24; end=right-25; y=cy+139
-        p.setPen(QPen(QColor("#48515a"),7,Qt.SolidLine,Qt.RoundCap));p.drawLine(start,y,end,y)
-        knob=start+(self.gain+12)/12*(end-start)
-        p.setPen(QPen(QColor(GOLD),7,Qt.SolidLine,Qt.RoundCap));p.drawLine(start,y,int(knob),y)
-        p.setBrush(QColor("#fff0d6"));p.setPen(QPen(QColor(GOLD),3))
-        p.drawEllipse(QPointF(knob,y),12,12)
-        self.text(p,start,cy+178,"-12 dB",10,MUTED)
-        self.text(p,end-30,cy+178,"0 dB",10,MUTED)
-        self.text(p,29,h-61,self.message[:95],12,"#35d994" if self.active else MUTED)
-        self.text(p,w-255,h-61,"CONFIGURAR APO  ⚙",12,GOLD,True)
-        self.text(p,29,h-25,"Fechar restaura o audio original • O grafico representa o FIR calculado, nao uma medicao do dispositivo",10,MUTED)
+        # Design space is fixed and uniformly scaled, keeping hit targets aligned.
+        p.fillRect(self.rect(),QColor("#070a0d"))
+        scale=min(self.width()/1100,self.height()/680)
+        ox=(self.width()-1100*scale)/2
+        oy=(self.height()-680*scale)/2
+        p.translate(ox,oy);p.scale(scale,scale)
+        p.setPen(Qt.NoPen)
+        shell=QLinearGradient(0,0,1100,680)
+        shell.setColorAt(0,QColor("#252c32"));shell.setColorAt(.52,QColor("#0c1117"))
+        shell.setColorAt(1,QColor("#232b32"))
+        p.setBrush(shell);p.drawRoundedRect(QRectF(8,8,1084,664),22,22)
+        p.setPen(QPen(QColor("#6e7477"),2));p.setBrush(Qt.NoBrush)
+        p.drawRoundedRect(QRectF(9,9,1082,662),22,22)
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor("#0b1015"));p.drawRoundedRect(QRectF(23,23,1054,634),16,16)
+        # Metallic header and narrow amber illuminated rule
+        header=QLinearGradient(0,30,0,102)
+        header.setColorAt(0,QColor("#323c44"));header.setColorAt(1,QColor("#111820"))
+        p.setBrush(header);p.drawRoundedRect(QRectF(28,28,1044,72),12,12)
+        p.setPen(QPen(QColor("#b46d35"),2));p.drawLine(44,102,1055,102)
+        self.text(p,54,69,"SR850",31,"#f4f1ea",True)
+        self.text(p,180,67,"SYSTEM REFERENCE",18,"#d9a36c",True)
+        self.text(p,181,87,"PRECISION HEADPHONE CALIBRATION",9,"#99a4ac")
+        self.text(p,903,64,"ZEZO HXCX",13,"#e9b77e",True)
+        self.text(p,917,83,"STUDIO EDITION",9,"#98a5ad")
+        # Left feature bay: photo-like sculpted headphone illustration.
+        self.panel(p,35,119,363,449)
+        self.text(p,58,157,"SAMSON  /  SR850",17,"#f0e7da",True)
+        self.text(p,58,181,"OPEN BACK REFERENCE",10,"#98a4ab")
+        self.headphones(p,215,354)
+        self.text(p,62,529,"CALIBRATED LISTENING",13,"#e8a366",True)
+        self.text(p,62,547,"Minimum-phase FIR  •  System wide",10,"#9ca9b1")
+        # Graph occupies the hero space, rather than a generic control card.
+        self.panel(p,412,119,651,302)
+        self.text(p,440,154,"FREQUENCY RESPONSE",17,"#f2e8d8",True)
+        self.text(p,870,152,"20 Hz — 20 kHz",11,"#d5a06a")
+        self.text(p,441,175,"MEASURED FIR TRANSFER  /  LOG FREQUENCY",9,"#8b9aa5")
+        self.graph(p,QRectF(473,206,554,163))
+        self.text(p,473,405,"—  CORRECTION",10,"#e8a366")
+        self.text(p,666,405,"- -  FLAT REFERENCE",10,"#9ba7b1")
+        # Controls use a real rack-style layout with separate insets.
+        self.panel(p,412,434,651,134)
+        self.text(p,439,461,"CORRECTION",11,"#abb6be",True)
+        cx=472;cy=511
+        glow=QRadialGradient(cx,cy,43)
+        glow.setColorAt(0,QColor("#3c7d61" if self.active else "#65452b"))
+        glow.setColorAt(1,QColor("#0b1015"))
+        p.setPen(QPen(QColor("#64dba3" if self.active else "#df9a54"),3))
+        p.setBrush(glow);p.drawEllipse(QPointF(cx,cy),30,30)
+        self.text(p,459,521,"⏻",28,"#b6ffd9" if self.active else "#ffe1b8",True)
+        self.text(p,520,508,"ACTIVE" if self.active else "BYPASS",15,"#65e6a5" if self.active else "#e4a76e",True)
+        self.text(p,520,528,"FIR ENGAGED" if self.active else "ORIGINAL AUDIO",9,"#8d9ca7")
+        p.setPen(QPen(QColor("#46525c"),1));p.drawLine(653,454,653,551)
+        self.text(p,674,461,"SAMPLE RATE",11,"#abb6be",True)
+        for i,(rate,label) in enumerate(((44100,"44.1k"),(48000,"48k"))):
+            r=QRectF(672+i*83,486,75,47)
+            g=QLinearGradient(r.topLeft(),r.bottomLeft())
+            selected=self.rate==rate
+            g.setColorAt(0,QColor("#8b552f" if selected else "#323b44"))
+            g.setColorAt(1,QColor("#38241a" if selected else "#141a20"))
+            p.setPen(QPen(QColor("#e9aa6d" if selected else "#48535c"),2))
+            p.setBrush(g);p.drawRoundedRect(r,7,7)
+            self.text(p,r.left()+12,r.top()+29,label,13,"#ffe7c9" if selected else "#a8b3ba",True)
+        p.setPen(QPen(QColor("#46525c"),1));p.drawLine(848,454,848,551)
+        self.text(p,868,461,"OUTPUT GAIN",11,"#abb6be",True)
+        self.text(p,868,494,f"{self.gain:+.1f} dB",23,"#eeb57a",True)
+        x1=873;x2=1031; yy=527
+        p.setPen(QPen(QColor("#46525c"),6,Qt.SolidLine,Qt.RoundCap));p.drawLine(x1,yy,x2,yy)
+        knob=x1+(self.gain+12)/12*(x2-x1)
+        p.setPen(QPen(QColor("#e3a15e"),6,Qt.SolidLine,Qt.RoundCap));p.drawLine(x1,yy,int(knob),yy)
+        p.setBrush(QColor("#f5d1a2"));p.setPen(QPen(QColor("#6c4225"),3));p.drawEllipse(QPointF(knob,yy),10,10)
+        self.text(p,870,552,"-12",9,"#99a5ae")
+        self.text(p,1013,552,"0 dB",9,"#99a5ae")
+        # Footer: persistent state, APO launcher, and safety hint.
+        p.setPen(Qt.NoPen);p.setBrush(QColor("#111820"))
+        p.drawRoundedRect(QRectF(35,581,1028,58),9,9)
+        p.setBrush(QColor("#58d69b" if self.active else "#d49a63"))
+        p.drawEllipse(QPointF(57,603),5,5)
+        self.text(p,73,607,self.message[:72],11,"#c2d1d9")
+        p.setPen(QPen(QColor("#a36a3f"),1))
+        p.setBrush(QColor("#31251f"));p.drawRoundedRect(QRectF(857,590,183,33),7,7)
+        self.text(p,878,611,"CONFIGURAR APO",12,"#e8ad75",True)
+        self.text(p,49,653,"ON/OFF controla o Equalizer APO  •  Fechar restaura o audio original",9,"#81919d")
         p.end()
 
     def panel(self,p,x,y,w,h):
-        p.setPen(QPen(QColor("#38414a"),1))
-        p.setBrush(QColor(PANEL))
-        p.drawRoundedRect(QRectF(x,y,w,h),15,15)
+        fill=QLinearGradient(x,y,x+w,y+h)
+        fill.setColorAt(0,QColor("#222c34"))
+        fill.setColorAt(.5,QColor("#121a22"))
+        fill.setColorAt(1,QColor("#10161d"))
+        p.setPen(QPen(QColor("#45505a"),1))
+        p.setBrush(fill);p.drawRoundedRect(QRectF(x,y,w,h),13,13)
 
     def text(self,p,x,y,s,size,color,bold=False):
         f=QFont("Segoe UI",size)
@@ -120,15 +156,36 @@ class Controller(QWidget):
         p.setFont(f);p.setPen(QColor(color));p.drawText(QPointF(x,y),s)
 
     def headphones(self,p,x,y):
-        p.setPen(QPen(QColor(GOLD),21,Qt.SolidLine,Qt.RoundCap))
-        p.setBrush(Qt.NoBrush)
-        p.drawArc(QRectF(x-108,y-116,216,225),0,180*16)
-        p.setPen(QPen(QColor("#3b4651"),12));p.drawArc(QRectF(x-108,y-116,216,225),0,180*16)
-        for cx in (x-107,x+107):
-            p.setBrush(QColor("#0c1117"));p.setPen(QPen(QColor(GOLD),4))
-            p.drawRoundedRect(QRectF(cx-33,y-14,66,112),27,27)
-            p.setBrush(QColor("#343f49"));p.setPen(QPen(QColor("#74808b"),2))
-            p.drawRoundedRect(QRectF(cx-21,y+1,42,82),18,18)
+        # Layered metal/plastic rendering with grille perforations and lighting.
+        halo=QRadialGradient(x,y,190)
+        halo.setColorAt(0,QColor(121,78,47,85))
+        halo.setColorAt(1,QColor(0,0,0,0))
+        p.setPen(Qt.NoPen);p.setBrush(halo)
+        p.drawEllipse(QPointF(x,y),183,183)
+        for width,color,dy in ((32,"#0a0d10",0),(23,"#626b71",3),(14,"#1c242b",7),(5,"#d1a478",9)):
+            p.setPen(QPen(QColor(color),width,Qt.SolidLine,Qt.RoundCap))
+            p.setBrush(Qt.NoBrush)
+            p.drawArc(QRectF(x-112,y-124+dy,224,240),0,180*16)
+        for cx in (x-108,x+108):
+            p.setPen(QPen(QColor("#c08b5d"),3))
+            body=QLinearGradient(cx-40,y-24,cx+43,y+103)
+            body.setColorAt(0,QColor("#5d6467"))
+            body.setColorAt(.4,QColor("#11181e"))
+            body.setColorAt(1,QColor("#454a4b"))
+            p.setBrush(body)
+            p.drawRoundedRect(QRectF(cx-41,y-25,82,132),29,29)
+            p.setPen(QPen(QColor("#090e13"),8))
+            p.setBrush(QColor("#1a2229"))
+            p.drawRoundedRect(QRectF(cx-29,y-12,58,106),25,25)
+            p.setPen(QPen(QColor("#4d5962"),1))
+            for row in range(8):
+                for col in range(3):
+                    px=cx-14+col*14
+                    py=y+2+row*10
+                    p.setBrush(QColor("#69737a" if (row+col)%3==0 else "#303b43"))
+                    p.drawEllipse(QPointF(px,py),2.2,2.2)
+        p.setPen(QPen(QColor("#9a7554"),3))
+        p.drawLine(QPointF(x-110,y+99),QPointF(x-107,y+147))
 
     def graph(self,p,r):
         import numpy as np
@@ -136,7 +193,7 @@ class Controller(QWidget):
         for db in (-12,-6,0,6,12):
             yy=r.bottom()-(db+12)/24*r.height()
             p.setPen(QPen(QColor("#34404a"),1));p.drawLine(QPointF(r.left(),yy),QPointF(r.right(),yy))
-            self.text(p,r.left()-40,yy+4,f"{db:+}",9,MUTED)
+            self.text(p,r.left()-33,yy+4,f"{db:+}",9,MUTED)
         for hz in (20,50,100,200,500,1000,2000,5000,10000,20000):
             xx=r.left()+math.log10(hz/20)/3*r.width()
             p.setPen(QPen(QColor("#29343e"),1));p.drawLine(QPointF(xx,r.top()),QPointF(xx,r.bottom()))
@@ -160,35 +217,45 @@ class Controller(QWidget):
             xx=r.left()+math.log10(hz/20)/3*r.width()
             self.text(p,xx-12,r.bottom()+20,f"{hz//1000}k" if hz>=1000 else str(hz),9,MUTED)
 
+    def design_pos(self,event):
+        scale=min(self.width()/1100,self.height()/680)
+        ox=(self.width()-1100*scale)/2
+        oy=(self.height()-680*scale)/2
+        return ((event.position().x()-ox)/scale,(event.position().y()-oy)/scale)
+
     def gain_from_x(self,x):
-        gx=390+201+211
-        left=gx+24;right=self.width()-49
-        self.gain=round((max(0,min(1,(x-left)/max(1,right-left)))*12-12)*2)/2
-        self.apply_live();self.update()
+        self.gain=round((max(0,min(1,(x-873)/158))*12-12)*2)/2
+        self.apply_live()
+        self.update()
 
     def mousePressEvent(self,event):
-        x=event.position().x();y=event.position().y()
-        cy=385
-        if 390+35<x<390+155 and cy+55<y<cy+165:
+        x,y=self.design_pos(event)
+        if 435<x<620 and 474<y<550:
             self.toggle()
-        elif 604<x<688 and cy+70<y<cy+128:
+        elif 672<x<747 and 486<y<533:
             self.change_rate(44100)
-        elif 695<x<785 and cy+70<y<cy+128:
+        elif 755<x<830 and 486<y<533:
             self.change_rate(48000)
-        elif x>self.width()-260 and y>self.height()-80:
+        elif 857<x<1040 and 590<y<623:
             self.configure_apo()
-        elif x>800 and cy+112<y<cy+165:
-            self.dragging=True;self.gain_from_x(x)
+        elif 860<x<1045 and 510<y<550:
+            self.dragging=True
+            self.gain_from_x(x)
 
     def mouseMoveEvent(self,event):
-        if self.dragging:self.gain_from_x(event.position().x())
+        if self.dragging:
+            x,_=self.design_pos(event)
+            self.gain_from_x(x)
 
     def mouseReleaseEvent(self,event):
         self.dragging=False
 
     def wheelEvent(self,event):
-        self.gain=max(-12,min(0,round((self.gain+(0.5 if event.angleDelta().y()>0 else -0.5))*2)/2))
-        self.apply_live();self.update()
+        x,y=self.design_pos(event)
+        if 857<x<1050 and 450<y<570:
+            self.gain=max(-12,min(0,round((self.gain+(0.5 if event.angleDelta().y()>0 else -0.5))*2)/2))
+            self.apply_live()
+            self.update()
 
     def change_rate(self,rate):
         self.rate=rate
