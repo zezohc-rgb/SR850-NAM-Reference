@@ -1,0 +1,34 @@
+name: Build optional real ASIO SDK probe
+on:
+  workflow_dispatch:
+    inputs:
+      sdk_include_dir:
+        description: 'ASIO SDK include directory relative to repository root'
+        required: true
+        default: 'external/asiosdk/common'
+jobs:
+  probe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Verify externally supplied ASIO SDK header
+        shell: pwsh
+        env:
+          SDK_DIR: ${{ inputs.sdk_include_dir }}
+        run: |
+          if (-not (Test-Path (Join-Path $env:SDK_DIR 'asio.h'))) {
+            Write-Error 'Missing asio.h. Supply a licensed ASIO SDK separately; this repository does not redistribute it.'
+            exit 1
+          }
+      - name: Compile only (never initialize driver on runner)
+        shell: cmd
+        env:
+          SDK_DIR: ${{ inputs.sdk_include_dir }}
+        run: |
+          cl /nologo /std:c++17 /EHsc /W4 /WX /I"%SDK_DIR%" SystemAudio\ASIO\native\asio_sdk_capability_probe_windows.cpp /Fe:asio_sdk_capability_probe.exe ole32.lib
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SR850-ASIO-SDK-Probe-Opt-In
+          path: asio_sdk_capability_probe.exe
+          retention-days: 7
