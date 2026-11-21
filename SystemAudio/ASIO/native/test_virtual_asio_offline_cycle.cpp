@@ -27,11 +27,13 @@ int main() {
  TestContext ctx{&stream,&cycle,0};
  sr850::VirtualAsioCallbackPump pump(stream);
  assert(pump.attach(tick,&ctx));
+ assert(pump.configure_clock(48000));
  assert(pump.start());
  stream.input(0,0)[0]=0.8f;
  stream.input(1,0)[0]=0.6f;
  assert(pump.tick() && pump.tick());
  assert(ctx.calls==2);
+ assert(pump.sample_position()==128);
  assert(std::fabs(stream.input(0,0)[0]-0.8f)<1e-6f);
  assert(std::fabs(stream.input(1,0)[0]-0.6f)<1e-6f);
  assert(std::fabs(stream.output(0,0)[0]-0.4f)<1e-6f);
