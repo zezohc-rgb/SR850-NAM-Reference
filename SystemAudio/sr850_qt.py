@@ -3,7 +3,7 @@ import math
 import sys
 import subprocess
 from pathlib import Path
-import wave
+from scipy.io import wavfile
 
 import numpy as np
 from PySide6.QtCore import Qt, QRectF, QPointF
@@ -36,15 +36,15 @@ class Controller(QWidget):
 
     def load_curve(self,rate):
         try:
-            with wave.open(str(engine.bundled(engine.FIR_NAMES[rate])),"rb") as wav:
-                channels=wav.getnchannels()
-                width=wav.getsampwidth()
-                fs=wav.getframerate()
-                raw=wav.readframes(wav.getnframes())
-            if width==2: values=np.frombuffer(raw,dtype="<i2").astype(np.float64)/32768
-            elif width==4: values=np.frombuffer(raw,dtype="<i4").astype(np.float64)/2147483648
-            else: raise ValueError("Unsupported FIR bit depth")
-            if channels>1: values=values.reshape(-1,channels).mean(axis=1)
+            fs, values = wavfile.read(str(engine.bundled(engine.FIR_NAMES[rate])))
+            if values.dtype.kind == "f":
+                values = values.astype(np.float64)
+            elif values.dtype.kind in "iu":
+                values = values.astype(np.float64) / float(2 ** (8 * values.dtype.itemsize - 1))
+            else:
+                raise ValueError("Unsupported FIR WAV encoding")
+            if values.ndim > 1:
+                values = values.mean(axis=1)
             n=max(65536,1<<(len(values)-1).bit_length())
             magnitude=np.abs(np.fft.rfft(values,n=n))
             bins=np.fft.rfftfreq(n,1/fs)
@@ -245,6 +245,9 @@ class Controller(QWidget):
         else:event.ignore()
 
 if __name__=="__main__":
+    if len(sys.argv)==4 and sys.argv[1]=="--watchdog":
+        engine.watchdog(Path(sys.argv[3]), int(sys.argv[2]))
+        sys.exit(0)
     app=QApplication(sys.argv)
     app.setStyle("Fusion")
     window=Controller()
