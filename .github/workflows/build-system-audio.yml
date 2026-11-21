@@ -12,7 +12,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install build dependencies
-        run: python -m pip install numpy scipy PySide6 pyinstaller
+        run: python -m pip install numpy scipy PySide6 pyinstaller soundcard cffi
       - name: Generate the same SR850 FIR used by the VST3
         run: |
           python tools/make_ir.py SystemAudio/SR850-Reference-48000.wav 48000
@@ -28,7 +28,7 @@ jobs:
       - name: Build Windows executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --uac-admin --name "SR850-System-Reference" --add-data "SystemAudio/SR850-Reference-48000.wav;." --add-data "SystemAudio/SR850-Reference-44100.wav;." --hidden-import sr850_system SystemAudio/sr850_qt.py
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --uac-admin --name "SR850-System-Reference" --add-data "SystemAudio/SR850-Reference-48000.wav;." --add-data "SystemAudio/SR850-Reference-44100.wav;." --hidden-import sr850_system --hidden-import spectrum_monitor --collect-all soundcard --collect-all cffi SystemAudio/sr850_qt.py
       - name: Build one-click Windows installer
         shell: pwsh
         run: |
