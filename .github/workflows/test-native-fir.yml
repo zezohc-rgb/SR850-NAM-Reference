@@ -43,6 +43,21 @@ jobs:
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\test_com_driver_handle_windows.cpp /Fe:com_driver_test.exe ole32.lib
           com_driver_test.exe
           cl /nologo /std:c++17 /EHsc /W4 /WX SystemAudio\ASIO\native\asio_activation_probe_windows.cpp /Fe:asio_activation_probe.exe ole32.lib
+      - name: Package read-only ASIO diagnostics
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force asio-diagnostics | Out-Null
+          Copy-Item asio_registry.exe,asio_activation_probe.exe asio-diagnostics/
+          Copy-Item SystemAudio/ASIO/native/diagnose-asio.ps1 asio-diagnostics/
+          Copy-Item SystemAudio/ASIO/native/DIAGNOSTICS.md asio-diagnostics/
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
+        with:
+          name: SR850-ASIO-Diagnostics-Windows
+          path: asio-diagnostics/
+          if-no-files-found: error
+          retention-days: 14
       - name: Build and test (Linux GCC)
         if: runner.os == 'Linux'
         shell: bash
