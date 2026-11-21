@@ -16,6 +16,7 @@ class VirtualAsioPhysicalTransport {
     return bridge_.prepare(stream_,impulse,rate,host,context);
   }
   bool start() noexcept { return bridge_.start(); }
+  std::size_t frames() const noexcept { return stream_.frames(); }
   // Physical inputs are copied into the host-facing guitar inputs.
   // Corrected host outputs are then copied to physical outputs.
   bool process(const float* const physical_inputs[2],
