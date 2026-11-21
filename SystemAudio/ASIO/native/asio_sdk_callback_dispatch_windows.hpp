@@ -54,7 +54,9 @@ class AsioSdkCallbackDispatch {
   }
   static long asio_message(long selector,long,long*,double*) noexcept {
     // Advertise only selector-supported query; no reset/resync support yet.
-    return selector==kAsioSelectorSupported ? 1L : 0L;
+    // No optional ASIO message features are implemented yet.
+    (void)selector;
+    return 0L;
   }
   AsioDoubleBufferBridge& bridge_;
   std::size_t frames_;
