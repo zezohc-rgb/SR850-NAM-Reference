@@ -21,7 +21,7 @@ class ComDriverHandle {
     CLSID clsid{};
     const HRESULT parsed = CLSIDFromString(clsid_string.c_str(), &clsid);
     if (FAILED(parsed)) return parsed;
-    const HRESULT initialized = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    const HRESULT initialized = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     if (FAILED(initialized)) return initialized;
     com_initialized_ = true;
     const HRESULT created = CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER,
@@ -35,6 +35,8 @@ class ComDriverHandle {
   }
   bool active() const noexcept { return instance_ != nullptr; }
   // COM initialization, use and close must occur on the same thread.
+  // Fast Track's registered COM server declares ThreadingModel=Apartment.
+  // This handle must not be moved to or destroyed from another thread.
  private:
   void* instance_ = nullptr;
   bool com_initialized_ = false;
