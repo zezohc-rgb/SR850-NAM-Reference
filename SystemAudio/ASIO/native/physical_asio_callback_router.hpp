@@ -13,7 +13,7 @@ class PhysicalAsioCallbackRouter {
       : transport_(transport) {}
   bool bind(std::size_t bank,const float* const inputs[2],
             float* const outputs[2]) noexcept {
-    if (!frames_ || bank>1 || !inputs || !outputs ||
+    if (!frames_ || frames_!=transport_.frames() || bank>1 || !inputs || !outputs ||
         !inputs[0] || !inputs[1] || !outputs[0] || !outputs[1]) return false;
     for(std::size_t ch=0;ch<2;++ch) {
       inputs_[bank][ch]=inputs[ch];
@@ -38,7 +38,8 @@ class PhysicalAsioCallbackRouter {
     return true;
   }
   bool configure_frames(std::size_t frames) noexcept {
-    if (!frames || frames>8192) return false;
+    if (!frames || frames>8192 || frames!=transport_.frames() ||
+        bound_[0] || bound_[1]) return false;
     frames_=frames;
     return true;
   }
