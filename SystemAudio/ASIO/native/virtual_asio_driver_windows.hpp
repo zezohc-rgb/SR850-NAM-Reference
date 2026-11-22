@@ -19,6 +19,7 @@ class VirtualAsioDriver final : public IASIO {
   void getErrorMessage(char* message) override {
     if (message) std::strcpy(message,"SR850 virtual backend not connected");
   }
+  // Fail closed until a real physical clock and audio transport are attached.
   ASIOError start() override { return ASE_NotPresent; }
   ASIOError stop() override { return ASE_OK; }
   ASIOError getChannels(long* inputs,long* outputs) override {
@@ -63,7 +64,8 @@ class VirtualAsioDriver final : public IASIO {
   ASIOError setClockSource(long index) override { return index==0 ? ASE_OK : ASE_InvalidParameter; }
   ASIOError getSamplePosition(ASIOSamples*,ASIOTimeStamp*) override { return ASE_NotPresent; }
   ASIOError getChannelInfo(ASIOChannelInfo* info) override {
-    if (!info || !VirtualAsioCapabilities::supported_channel(info->channel,info->isInput==ASIOTrue))
+    if (!info || (info->isInput!=ASIOTrue && info->isInput!=ASIOFalse) ||
+        !VirtualAsioCapabilities::supported_channel(info->channel,info->isInput==ASIOTrue))
       return ASE_InvalidParameter;
     info->isActive=ASIOFalse; info->channelGroup=0; info->type=ASIOSTFloat32LSB;
     std::strcpy(info->name,info->isInput==ASIOTrue ? "SR850 Guitar Input" : "SR850 Corrected Output");
