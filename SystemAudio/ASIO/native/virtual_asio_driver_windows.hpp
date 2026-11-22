@@ -71,7 +71,9 @@ class VirtualAsioDriver final : public IASIO {
   }
   ASIOError createBuffers(ASIOBufferInfo* infos,long count,long frames,
                           ASIOCallbacks* callbacks) override {
-    if (!infos || !callbacks || count<=0 ||
+    if (!infos || !callbacks || !callbacks->bufferSwitch ||
+        !callbacks->sampleRateDidChange || !callbacks->asioMessage ||
+        !callbacks->bufferSwitchTimeInfo || count<=0 ||
         !VirtualAsioCapabilities::supported_frames(frames) ||
         stream_.state()!=VirtualAsioStreamCore::State::closed)
       return ASE_InvalidParameter;
@@ -103,16 +105,25 @@ class VirtualAsioDriver final : public IASIO {
           : static_cast<void*>(stream_.output(bank,static_cast<std::size_t>(info.channelNum)));
       }
     }
-    // Callback is intentionally not invoked until a physical clock is wired.
+    // Keep the host callback table only while buffers exist. No callbacks
+    // are invoked until the physical clock and backend are implemented.
+    callbacks_=*callbacks;
     return ASE_OK;
   }
-  ASIOError disposeBuffers() override { stream_.close(); return ASE_OK; }
+  ASIOError disposeBuffers() override {
+    if (stream_.state()==VirtualAsioStreamCore::State::running)
+      return ASE_InvalidMode;
+    callbacks_={};
+    stream_.close();
+    return ASE_OK;
+  }
   ASIOError controlPanel() override { return ASE_NotPresent; }
   ASIOError future(long,void*) override { return ASE_NotPresent; }
   ASIOError outputReady() override { return ASE_NotPresent; }
  private:
   VirtualAsioStreamCore stream_;
   ASIOSampleRate sample_rate_=48000.0;
+  ASIOCallbacks callbacks_{};
 };
 } // namespace sr850
 #endif
